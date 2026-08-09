@@ -6,6 +6,7 @@ import de.fiereu.openmmo.server.game.GameServer
 import de.fiereu.openmmo.server.game.config.GameServerConfig
 import de.fiereu.openmmo.server.game.db.DatabaseBootstrap
 import de.fiereu.openmmo.server.game.handler.GameAppHandler
+import de.fiereu.openmmo.server.game.internal.InternalApiServer
 import de.fiereu.openmmo.server.game.session.SessionRegistry
 import de.fiereu.openmmo.server.game.storage.CharacterStore
 import de.fiereu.openmmo.server.game.storage.DevCharacterSeeder
@@ -17,6 +18,8 @@ import javax.inject.Singleton
 interface GameServerComponent {
 
   fun server(): GameServer
+
+  fun internalApi(): InternalApiServer
 
   fun handlerProvider(): Provider<GameAppHandler>
 

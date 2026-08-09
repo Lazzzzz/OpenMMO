@@ -26,5 +26,6 @@ fun main() {
                 }
                 .onFailure { log.warn(it) { "Final character flush did not complete" } }
           })
+  component.internalApi().start()
   component.server().start()
 }

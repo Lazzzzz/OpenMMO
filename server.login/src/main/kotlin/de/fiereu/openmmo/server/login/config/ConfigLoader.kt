@@ -24,6 +24,13 @@ object ConfigLoader {
         rootKeyFile = config.stringOrNull("server.rootKeyFile"),
         sessionSecret = secret.toByteArray(Charsets.UTF_8),
         rememberMeMaxAge = rememberMeMaxAge,
+        presence =
+            PresenceConfig(
+                enabled = config.getBoolean("presence.enabled"),
+                baseUrl = config.getString("presence.baseUrl"),
+                secret = config.getString("presence.secret"),
+                timeout = config.getDuration("presence.timeout"),
+            ),
         db =
             DbConfig(
                 host = config.getString("db.host"),

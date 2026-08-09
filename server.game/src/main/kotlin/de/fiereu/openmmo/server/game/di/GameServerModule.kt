@@ -7,8 +7,11 @@ import dagger.Provides
 import de.fiereu.openmmo.common.auth.SessionTokenVerifier
 import de.fiereu.openmmo.common.io.PemKeyLoader
 import de.fiereu.openmmo.common.io.pemStream
+import de.fiereu.openmmo.common.presence.PresenceLookup
 import de.fiereu.openmmo.server.game.config.GameServerConfig
+import de.fiereu.openmmo.server.game.config.InternalApiConfig
 import de.fiereu.openmmo.server.game.script.ScriptRegistry
+import de.fiereu.openmmo.server.game.session.LocalPresenceLookup
 import de.fiereu.openmmo.server.game.storage.CharacterRepository
 import de.fiereu.openmmo.server.game.storage.JooqCharacterRepository
 import de.fiereu.openmmo.server.game.world.interest.InterestPolicy
@@ -36,6 +39,17 @@ object GameServerModule {
   fun rootKey(config: GameServerConfig): ECPrivateKey =
       PemKeyLoader.loadEcPrivate(
           pemStream(config.rootKey, config.rootKeyFile, config.rootKeyResource))
+
+  @Provides
+  @Singleton
+  fun internalApiConfig(config: GameServerConfig): InternalApiConfig = config.internalApi
+
+  @Provides
+  @Singleton
+  @Named("gameServerId")
+  fun gameServerId(config: GameServerConfig): Int = config.internalApi.gameServerId
+
+  @Provides @Singleton fun presenceLookup(impl: LocalPresenceLookup): PresenceLookup = impl
 
   @Provides
   @Singleton

@@ -9,6 +9,7 @@ data class GameServerConfig(
     val rootKeyResource: String,
     val sessionSecret: ByteArray,
     val sessionTokenMaxAge: Duration = Duration.ofMinutes(5),
+    val internalApi: InternalApiConfig = InternalApiConfig(),
     val db: DbConfig = DbConfig(),
     val rootKey: String? = null,
     val rootKeyFile: String? = null,
@@ -23,6 +24,7 @@ data class GameServerConfig(
           rootKeyFile == other.rootKeyFile &&
           sessionSecret.contentEquals(other.sessionSecret) &&
           sessionTokenMaxAge == other.sessionTokenMaxAge &&
+          internalApi == other.internalApi &&
           db == other.db
 
   override fun hashCode(): Int {
@@ -34,6 +36,7 @@ data class GameServerConfig(
     h = h * 31 + rootKeyFile.hashCode()
     h = h * 31 + sessionSecret.contentHashCode()
     h = h * 31 + sessionTokenMaxAge.hashCode()
+    h = h * 31 + internalApi.hashCode()
     h = h * 31 + db.hashCode()
     return h
   }

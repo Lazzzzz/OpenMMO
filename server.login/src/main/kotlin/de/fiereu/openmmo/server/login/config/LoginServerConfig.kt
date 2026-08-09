@@ -9,6 +9,7 @@ data class LoginServerConfig(
     val rootKeyResource: String,
     val sessionSecret: ByteArray,
     val rememberMeMaxAge: Duration = Duration.ofDays(30),
+    val presence: PresenceConfig = PresenceConfig(),
     val db: DbConfig = DbConfig(),
     val rootKey: String? = null,
     val rootKeyFile: String? = null,
@@ -23,6 +24,7 @@ data class LoginServerConfig(
           rootKeyFile == other.rootKeyFile &&
           sessionSecret.contentEquals(other.sessionSecret) &&
           rememberMeMaxAge == other.rememberMeMaxAge &&
+          presence == other.presence &&
           db == other.db
 
   override fun hashCode(): Int {
@@ -34,6 +36,7 @@ data class LoginServerConfig(
     h = h * 31 + rootKeyFile.hashCode()
     h = h * 31 + sessionSecret.contentHashCode()
     h = h * 31 + rememberMeMaxAge.hashCode()
+    h = h * 31 + presence.hashCode()
     h = h * 31 + db.hashCode()
     return h
   }

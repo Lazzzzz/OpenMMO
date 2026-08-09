@@ -1,6 +1,7 @@
 package de.fiereu.openmmo.server.game.session
 
 import de.fiereu.openmmo.common.enums.Direction
+import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -9,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 data class PlayerState(
     val userId: Int,
+    val sessionId: Long = newSessionId(),
     @field:Volatile var characterId: Long? = null,
     @field:Volatile var justWarped: Boolean = false,
     @field:Volatile var facingDirection: Direction = Direction.DOWN,
@@ -36,3 +38,8 @@ data class PlayerState(
 /** Packs a map address into one key for [PlayerState.loadedMaps]. */
 fun mapCacheKey(regionId: Int, bankId: Int, mapId: Int): Int =
     (regionId shl 16) or (bankId shl 8) or mapId
+
+private val sessionIds = SecureRandom()
+
+/** Identifies one play session, so a client can name the session it wants to act on. */
+fun newSessionId(): Long = sessionIds.nextLong()

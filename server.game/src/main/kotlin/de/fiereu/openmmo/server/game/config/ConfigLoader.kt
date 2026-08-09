@@ -24,6 +24,14 @@ object ConfigLoader {
         rootKeyFile = config.stringOrNull("server.rootKeyFile"),
         sessionSecret = secret.toByteArray(Charsets.UTF_8),
         sessionTokenMaxAge = tokenMaxAge,
+        internalApi =
+            InternalApiConfig(
+                enabled = config.getBoolean("internalApi.enabled"),
+                host = config.getString("internalApi.host"),
+                port = config.getInt("internalApi.port"),
+                secret = config.getString("internalApi.secret"),
+                gameServerId = config.getInt("internalApi.gameServerId"),
+            ),
         db =
             DbConfig(
                 host = config.getString("db.host"),

@@ -10,9 +10,12 @@ import de.fiereu.openmmo.common.auth.RememberMeTokenVerifier
 import de.fiereu.openmmo.common.auth.SessionTokenIssuer
 import de.fiereu.openmmo.common.io.PemKeyLoader
 import de.fiereu.openmmo.common.io.pemStream
+import de.fiereu.openmmo.common.presence.PresenceLookup
 import de.fiereu.openmmo.server.login.auth.JooqUserStore
 import de.fiereu.openmmo.server.login.auth.UserService
 import de.fiereu.openmmo.server.login.config.LoginServerConfig
+import de.fiereu.openmmo.server.login.config.PresenceConfig
+import de.fiereu.openmmo.server.login.presence.RemotePresenceLookup
 import io.netty.channel.EventLoopGroup
 import io.netty.channel.MultiThreadIoEventLoopGroup
 import io.netty.channel.nio.NioIoHandler
@@ -39,6 +42,12 @@ abstract class LoginServerModule {
     fun rootKey(config: LoginServerConfig): ECPrivateKey =
         PemKeyLoader.loadEcPrivate(
             pemStream(config.rootKey, config.rootKeyFile, config.rootKeyResource))
+
+    @Provides
+    @Singleton
+    fun presenceConfig(config: LoginServerConfig): PresenceConfig = config.presence
+
+    @Provides @Singleton fun presenceLookup(impl: RemotePresenceLookup): PresenceLookup = impl
 
     @Provides
     @Singleton

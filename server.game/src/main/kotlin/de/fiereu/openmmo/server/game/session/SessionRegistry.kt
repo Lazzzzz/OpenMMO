@@ -10,19 +10,23 @@ import javax.inject.Singleton
 class SessionRegistry @Inject constructor() {
   private val sessionsByChannel = ConcurrentHashMap<Channel, SessionContext>()
   private val sessionsByCharacter = ConcurrentHashMap<Long, SessionContext>()
+  private val sessionsByUser = ConcurrentHashMap<Int, SessionContext>()
 
   fun register(ctx: SessionContext) {
     sessionsByChannel[ctx.channel] = ctx
+    ctx.attributes[PLAYER_STATE]?.let { sessionsByUser[it.userId] = ctx }
   }
 
+  // Removals are identity checked, so a session that has already been replaced does not take its
+  // successor's entries with it when it finally disconnects.
   fun unregister(ctx: SessionContext) {
-    sessionsByChannel.remove(ctx.channel)
-    val state = ctx.attributes[PLAYER_STATE]
-    val charId = state?.characterId
-    if (charId != null) {
-      sessionsByCharacter.remove(charId)
-    }
+    sessionsByChannel.remove(ctx.channel, ctx)
+    val state = ctx.attributes[PLAYER_STATE] ?: return
+    state.characterId?.let { sessionsByCharacter.remove(it, ctx) }
+    sessionsByUser.remove(state.userId, ctx)
   }
+
+  fun getByUserId(userId: Int): SessionContext? = sessionsByUser[userId]
 
   fun bindCharacter(ctx: SessionContext, characterId: Long) {
     sessionsByCharacter[characterId] = ctx
