@@ -6,6 +6,7 @@
 - [Description](#description)
 - [Building](#building)
 - [Configuration](#configuration)
+- [Launcher](#launcher)
 - [Releases](#releases)
 - [Documentation](#wiki)
 - [License](LICENSE)
@@ -30,7 +31,7 @@ git clone --recurse-submodules <repo-url>
 git submodule update --init --recursive
 ```
 
-Without the submodules the `:maps` build fails, because the generator has no
+Without the submodules the `:codegen` build fails, because the generator has no
 decomp data to read.
 
 ### ROMs
@@ -55,7 +56,8 @@ root. It is **gitignored**, never commit it. Use the tracked
 ```bash
 cp .env.example .env          # then edit the values
 docker compose up -d          # start all docker containers
-./gradlew runAll              # build and run the servers
+./gradlew :server.login:run   # binds 0.0.0.0:2106, blocks
+./gradlew :server.game:run    # binds 0.0.0.0:7777, blocks
 ```
 
 For local-only tweaks to the container setup, create a
@@ -72,6 +74,28 @@ Released archives ship no keys. Generate a pair with
 `./gradlew :keys:generateGame` and pass the private key to both servers through
 `OPENMMO_GAME_PRIVATE_KEY` (the PEM) or `OPENMMO_GAME_PRIVATE_KEY_FILE` (a path
 to it). Clients need a patched build carrying the matching public key.
+
+## Launcher
+
+The launcher downloads a PokeMMO client from the official servers, applies OpenMMO's patches to
+it and starts it. It keeps its own directory and never touches a retail PokeMMO install.
+
+```bash
+./gradlew :launcher:dev       # serves a feed on loopback, then opens the launcher
+```
+
+That feed points the client at `127.0.0.1:2106`, so run the servers alongside it.
+Leave the command running while you play, because the client reads the feed for as
+long as it is open.
+
+A distribution bakes in the published feed instead of the loopback one:
+
+```bash
+./gradlew :launcher:createDistributable -Popenmmo.feedOrigin=https://feed.openmmo.dev
+```
+
+See [Running the game client](docs/src/content/docs/guides/running-the-client.md)
+for the details.
 
 ## Releases
 
