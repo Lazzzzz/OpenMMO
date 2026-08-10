@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/connexion', [LoginController::class, 'create'])->name('login');
-    Route::post('/connexion', [LoginController::class, 'store']);
+    Route::post('/connexion', [LoginController::class, 'store'])
+        ->middleware('throttle:5,1');
 });
 
 Route::middleware('auth')->group(function (): void {

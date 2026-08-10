@@ -47,6 +47,14 @@ En production : utilisez HTTPS, placez le site derrière Nginx ou Caddy, mettez
 `APP_ENV=production` et `APP_DEBUG=false`, employez des mots de passe de base distincts et
 restreignez l'accès PostgreSQL au serveur qui héberge le panneau.
 
+## Image de production
+
+Le `Dockerfile` produit une image Apache/PHP autonome. Les dépendances Composer et les assets
+Vite sont construits dans des étapes séparées et aucun fichier `.env` n'entre dans l'image.
+Le conteneur applique les migrations Laravel au démarrage puis met en cache la configuration
+et les vues. Montez un volume persistant sur `/var/www/html/database` lorsque la base du
+panneau utilise SQLite.
+
 ## Vérification
 
 ```bash

@@ -34,4 +34,24 @@ class AuthenticationTest extends TestCase
             ->assertSessionHasErrors('email');
         $this->assertGuest();
     }
+
+    public function test_login_is_rate_limited_after_repeated_failures(): void
+    {
+        User::factory()->create([
+            'email' => 'admin@example.test',
+            'password' => bcrypt('a-secure-password'),
+        ]);
+
+        foreach (range(1, 5) as $attempt) {
+            $this->post('/connexion', [
+                'email' => 'admin@example.test',
+                'password' => 'wrong-password',
+            ])->assertSessionHasErrors('email');
+        }
+
+        $this->post('/connexion', [
+            'email' => 'admin@example.test',
+            'password' => 'wrong-password',
+        ])->assertTooManyRequests();
+    }
 }

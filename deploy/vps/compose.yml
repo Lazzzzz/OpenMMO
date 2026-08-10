@@ -1,0 +1,176 @@
+name: openmmo
+
+services:
+  login-db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${LOGIN_DB_NAME}
+      POSTGRES_USER: ${LOGIN_DB_USER}
+      POSTGRES_PASSWORD: ${LOGIN_DB_PASSWORD}
+    volumes:
+      - login_db_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LOGIN_DB_USER} -d ${LOGIN_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  game-db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${GAME_DB_NAME}
+      POSTGRES_USER: ${GAME_DB_USER}
+      POSTGRES_PASSWORD: ${GAME_DB_PASSWORD}
+    volumes:
+      - game_db_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${GAME_DB_USER} -d ${GAME_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  login-server:
+    image: eclipse-temurin:25-jre-jammy
+    restart: unless-stopped
+    working_dir: /app
+    command: ["./bin/server.login"]
+    environment:
+      LOGIN_DB_HOST: login-db
+      LOGIN_DB_PORT: 5432
+      LOGIN_DB_NAME: ${LOGIN_DB_NAME}
+      LOGIN_DB_USER: ${LOGIN_DB_USER}
+      LOGIN_DB_PASSWORD: ${LOGIN_DB_PASSWORD}
+      LOGIN_DB_SEED_DEV: "false"
+      OPENMMO_SESSION_SECRET: ${OPENMMO_SESSION_SECRET}
+      OPENMMO_GAME_PRIVATE_KEY_FILE: /run/secrets/game.private.pem
+      OPENMMO_GAME_SERVER_IPV4: ${OPENMMO_GAME_SERVER_IPV4}
+      OPENMMO_GAME_SERVER_IPV6: ${OPENMMO_GAME_SERVER_IPV6}
+      OPENMMO_GAME_SERVER_PORT: 7777
+      OPENMMO_GAME_SERVER_HOSTNAME: ${OPENMMO_GAME_SERVER_HOSTNAME}
+      OPENMMO_GAME_SERVER_MAX_PLAYERS: 100
+    volumes:
+      - ./server.login:/app:ro
+      - ./secrets/game.private.pem:/run/secrets/game.private.pem:ro
+    ports:
+      - "2106:2106/tcp"
+    depends_on:
+      login-db:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+
+  game-server:
+    image: eclipse-temurin:25-jre-jammy
+    restart: unless-stopped
+    working_dir: /app
+    command: ["./bin/server.game"]
+    environment:
+      GAME_DB_HOST: game-db
+      GAME_DB_PORT: 5432
+      GAME_DB_NAME: ${GAME_DB_NAME}
+      GAME_DB_USER: ${GAME_DB_USER}
+      GAME_DB_PASSWORD: ${GAME_DB_PASSWORD}
+      GAME_DB_SEED_DEV: "false"
+      OPENMMO_SESSION_SECRET: ${OPENMMO_SESSION_SECRET}
+      OPENMMO_GAME_PRIVATE_KEY_FILE: /run/secrets/game.private.pem
+    volumes:
+      - ./server.game:/app:ro
+      - ./secrets/game.private.pem:/run/secrets/game.private.pem:ro
+    ports:
+      - "7777:7777/tcp"
+    depends_on:
+      game-db:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+
+  feed:
+    image: nginx:1.29-alpine
+    restart: unless-stopped
+    volumes:
+      - ./feed-www:/usr/share/nginx/html:ro
+      - ./feed-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - default
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.openmmo-feed-http.entrypoints=http"
+      - "traefik.http.routers.openmmo-feed-http.rule=Host(`mmo.jewelrydb.cloud`)"
+      - "traefik.http.routers.openmmo-feed-http.middlewares=redirect-to-https@file"
+      - "traefik.http.routers.openmmo-feed-http.service=openmmo-feed"
+      - "traefik.http.routers.openmmo-feed-https.entrypoints=https"
+      - "traefik.http.routers.openmmo-feed-https.rule=Host(`mmo.jewelrydb.cloud`)"
+      - "traefik.http.routers.openmmo-feed-https.tls=true"
+      - "traefik.http.routers.openmmo-feed-https.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.openmmo-feed-https.service=openmmo-feed"
+      - "traefik.http.services.openmmo-feed.loadbalancer.server.port=80"
+    security_opt:
+      - no-new-privileges:true
+
+  control-panel:
+    build:
+      context: ./admin-panel
+    restart: unless-stopped
+    env_file:
+      - ./admin-panel.env
+    environment:
+      OPENMMO_LOGIN_DB_CONNECTION: pgsql
+      OPENMMO_LOGIN_DB_HOST: login-db
+      OPENMMO_LOGIN_DB_PORT: 5432
+      OPENMMO_LOGIN_DB_DATABASE: ${LOGIN_DB_NAME}
+      OPENMMO_LOGIN_DB_USERNAME: ${LOGIN_DB_USER}
+      OPENMMO_LOGIN_DB_PASSWORD: ${LOGIN_DB_PASSWORD}
+      OPENMMO_GAME_DB_CONNECTION: pgsql
+      OPENMMO_GAME_DB_HOST: game-db
+      OPENMMO_GAME_DB_PORT: 5432
+      OPENMMO_GAME_DB_DATABASE: ${GAME_DB_NAME}
+      OPENMMO_GAME_DB_USERNAME: ${GAME_DB_USER}
+      OPENMMO_GAME_DB_PASSWORD: ${GAME_DB_PASSWORD}
+      OPENMMO_LOGIN_HOST: login-server
+      OPENMMO_LOGIN_PORT: 2106
+      OPENMMO_GAME_HOST: game-server
+      OPENMMO_GAME_PORT: 7777
+    volumes:
+      - control_panel_data:/var/www/html/database
+    networks:
+      - default
+      - coolify
+    depends_on:
+      login-db:
+        condition: service_healthy
+      game-db:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.openmmo-control-http.entrypoints=http"
+      - "traefik.http.routers.openmmo-control-http.rule=Host(`admin.mmo.jewelrydb.cloud`)"
+      - "traefik.http.routers.openmmo-control-http.middlewares=redirect-to-https@file"
+      - "traefik.http.routers.openmmo-control-http.service=openmmo-control"
+      - "traefik.http.routers.openmmo-control-https.entrypoints=https"
+      - "traefik.http.routers.openmmo-control-https.rule=Host(`admin.mmo.jewelrydb.cloud`)"
+      - "traefik.http.routers.openmmo-control-https.tls=true"
+      - "traefik.http.routers.openmmo-control-https.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.openmmo-control-https.service=openmmo-control"
+      - "traefik.http.services.openmmo-control.loadbalancer.server.port=80"
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/up') === false ? 1 : 0);"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  login_db_data:
+  game_db_data:
+  control_panel_data:
+
+networks:
+  coolify:
+    external: true
