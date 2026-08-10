@@ -1,0 +1,9 @@
+<?php
+
+return [
+    'login_host' => env('OPENMMO_LOGIN_HOST', '127.0.0.1'),
+    'login_port' => (int) env('OPENMMO_LOGIN_PORT', 2106),
+    'game_host' => env('OPENMMO_GAME_HOST', '127.0.0.1'),
+    'game_port' => (int) env('OPENMMO_GAME_PORT', 7777),
+    'status_timeout' => (float) env('OPENMMO_STATUS_TIMEOUT', 0.35),
+];

@@ -20,7 +20,7 @@ constructor(
   override suspend fun authenticate(username: String, password: String): UserService.AuthResult =
       withContext(dispatcher) {
         val user = dsl.selectFrom(USERS).where(USERS.USERNAME.eq(username.lowercase())).fetchOne()
-        if (user == null || user.passwordHash != password) {
+        if (user == null || user.enabled != true || user.passwordHash != password) {
           UserService.AuthResult(LoginState.INVALID_PASSWORD)
         } else {
           UserService.AuthResult(LoginState.AUTHED, user.id, user.tokenEpoch ?: 0)
@@ -29,7 +29,7 @@ constructor(
 
   override suspend fun findForToken(userId: Int): UserService.TokenUser? =
       withContext(dispatcher) {
-        dsl.selectFrom(USERS).where(USERS.ID.eq(userId)).fetchOne()?.let {
+        dsl.selectFrom(USERS).where(USERS.ID.eq(userId).and(USERS.ENABLED.isTrue)).fetchOne()?.let {
           UserService.TokenUser(it.id!!, it.username, it.displayName, it.tokenEpoch ?: 0)
         }
       }
@@ -38,7 +38,7 @@ constructor(
       withContext(dispatcher) {
         dsl.select(USERS.ID)
             .from(USERS)
-            .where(USERS.USERNAME.eq(username.lowercase()))
+            .where(USERS.USERNAME.eq(username.lowercase()).and(USERS.ENABLED.isTrue))
             .fetchOne(USERS.ID)
       }
 

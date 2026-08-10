@@ -2,11 +2,13 @@ package de.fiereu.openmmo.server.login.auth
 
 import de.fiereu.openmmo.common.enums.LoginState
 import de.fiereu.openmmo.common.test.DockerAvailable
+import de.fiereu.openmmo.db.login.tables.references.USERS
 import io.kotest.core.annotation.EnabledIf
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.Dispatchers
 import org.flywaydb.core.Flyway
+import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import org.testcontainers.containers.PostgreSQLContainer
 
@@ -15,6 +17,7 @@ class JooqUserStoreIT :
     FunSpec({
       val container = PostgreSQLContainer<Nothing>("postgres:18")
       lateinit var store: JooqUserStore
+      lateinit var dsl: DSLContext
 
       beforeSpec {
         container.start()
@@ -23,7 +26,7 @@ class JooqUserStoreIT :
             .locations("classpath:db/migration", "classpath:db/dev")
             .load()
             .migrate()
-        val dsl = DSL.using(container.jdbcUrl, container.username, container.password)
+        dsl = DSL.using(container.jdbcUrl, container.username, container.password)
         store = JooqUserStore(dsl, Dispatchers.IO)
       }
 
@@ -50,6 +53,14 @@ class JooqUserStoreIT :
 
       test("authenticate fails for an unknown user") {
         store.authenticate("nobody", sha1Hex("pw")).state shouldBe LoginState.INVALID_PASSWORD
+      }
+
+      test("a disabled user cannot authenticate or reuse a token") {
+        dsl.update(USERS).set(USERS.ENABLED, false).where(USERS.ID.eq(1)).execute()
+
+        store.authenticate("admin", sha1Hex("admin")).state shouldBe LoginState.INVALID_PASSWORD
+        store.findForToken(1) shouldBe null
+        store.getUserId("admin") shouldBe null
       }
 
       test("addUser returns the generated id and getUserId finds it") {

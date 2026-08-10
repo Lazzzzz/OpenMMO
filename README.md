@@ -90,6 +90,13 @@ Every push to `master` opens or updates a release pull request. Merging it tags
 the release and attaches the server archives. The version lives in
 `gradle.properties` and applies to every module, do not edit it by hand.
 
+## Administration web
+
+Le dossier [`admin-panel`](admin-panel/) contient le panneau Laravel destiné aux
+administrateurs du serveur. Il permet de surveiller les services et de gérer les accès joueurs
+sans modifier directement PostgreSQL. Consultez son README pour l'installation locale et la
+configuration de production.
+
 ## Wiki
 
 The documentation wiki can be found [here](https://docs.openmmo.dev/).
