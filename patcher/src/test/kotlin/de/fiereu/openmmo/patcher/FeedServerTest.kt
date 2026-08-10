@@ -52,6 +52,27 @@ class FeedServerTest :
           server.stop()
         }
       }
+
+      test("can advertise a remote login server while the feed stays local") {
+        val keyStore = FeedTls.keyStore()
+        val signingKey =
+            KeyFactory.getInstance("RSA")
+                .generatePrivate(PKCS8EncodedKeySpec(pem("/feed.private.pem")))
+        val server = FeedServer(signingKey, keyStore)
+        server.publish(32710, "203.0.113.10")
+        server.start()
+
+        try {
+          val client = HttpClient.newBuilder().sslContext(trusting(server.certificate())).build()
+          val base = "https://$LOOPBACK:${server.port}/live/current/feeds/main_feed"
+          val feed = client.send(get("$base.txt"), HttpResponse.BodyHandlers.ofByteArray())
+          val xml = feed.body().decodeToString()
+          xml shouldContain "<ip>203.0.113.10</ip>"
+          xml shouldContain "https://127.0.0.1:${server.port}/updater/"
+        } finally {
+          server.stop()
+        }
+      }
     })
 
 private fun get(url: String): HttpRequest = HttpRequest.newBuilder(URI(url)).GET().build()

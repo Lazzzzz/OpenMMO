@@ -37,6 +37,7 @@ private val POKEMMO_FEED_HOSTS =
 private const val EXECUTABLE_PROPERTY = "openmmo.executable"
 private const val WORKING_DIR_PROPERTY = "openmmo.workingDir"
 private const val OUTPUT_PROPERTY = "openmmo.output"
+private const val LOGIN_HOST_PROPERTY = "openmmo.loginHost"
 
 private const val TRUSTSTORE_NAME = "openmmo-truststore.p12"
 
@@ -66,9 +67,13 @@ object Launcher {
     val keyStore = FeedTls.keyStore()
     val feed = FeedServer(loadPrivateKey("/feed.private.pem"), keyStore)
     val revision = readRevision(workingDir)
-    feed.publish(revision)
+    val loginHost = System.getProperty(LOGIN_HOST_PROPERTY) ?: LOOPBACK
+    feed.publish(revision, loginHost)
     feed.start()
-    log { "Serving the main feed on https://$LOOPBACK:${feed.port} for revision $revision" }
+    log {
+      "Serving the main feed on https://$LOOPBACK:${feed.port} for revision $revision, " +
+          "login server $loginHost"
+    }
 
     val patcher = ClientPatcher(patches(feed.port))
 
@@ -89,6 +94,7 @@ object Launcher {
     if (!output.toFile().setExecutable(true)) {
       log { "Could not mark $output as executable" }
     }
+    signForMacOs(output)
     log { "Wrote patched client to $output" }
 
     val trustStore =
@@ -110,6 +116,19 @@ object Launcher {
     val status = process.waitFor()
     feed.stop()
     exitProcess(status)
+  }
+
+  /** A modified Mach-O keeps its old signature, so macOS kills it before main can start. */
+  private fun signForMacOs(output: Path) {
+    if (!System.getProperty("os.name").startsWith("Mac", ignoreCase = true)) return
+
+    log { "Signing the patched client for macOS" }
+    val status =
+        ProcessBuilder("codesign", "--force", "--sign", "-", output.toString())
+            .inheritIO()
+            .start()
+            .waitFor()
+    check(status == 0) { "codesign failed with exit code $status" }
   }
 
   private fun patches(feedPort: Int): List<ClientPatcher.Patch> =

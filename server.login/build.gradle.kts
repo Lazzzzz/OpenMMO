@@ -38,7 +38,12 @@ tasks.named<JavaExec>("run") {
           "LOGIN_DB_NAME",
           "LOGIN_DB_USER",
           "LOGIN_DB_PASSWORD",
-          "LOGIN_DB_SEED_DEV")
+          "LOGIN_DB_SEED_DEV",
+          "OPENMMO_GAME_SERVER_IPV4",
+          "OPENMMO_GAME_SERVER_IPV6",
+          "OPENMMO_GAME_SERVER_PORT",
+          "OPENMMO_GAME_SERVER_HOSTNAME",
+          "OPENMMO_GAME_SERVER_MAX_PLAYERS")
       .forEach { key -> env.fetchOrNull(key)?.let { environment(key, it) } }
 }
 

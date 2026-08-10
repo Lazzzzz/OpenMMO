@@ -78,7 +78,9 @@ constructor(
     session.send(MapTransitionAckPacket(MapTransitionKind.WARP))
     mapLoadService.resetClientCache(session, map)
     session.send(mapManager.createLoadMapPacket(map, reloadPlayer = true, deleteCache = true))
-    mapLoadService.preloadConnectedMaps(session, map, depth = 1, reloadPlayer = true)
+    // Connected maps only populate the cache. Asking them to reload the player causes duplicate
+    // RequestPlayer packets and races the scripted arrival/fade-in.
+    mapLoadService.preloadConnectedMaps(session, map, depth = 1, reloadPlayer = false)
 
     try {
       if (withTimeoutOrNull(MAP_LOAD_TIMEOUT) { loaded.await() } == null) {

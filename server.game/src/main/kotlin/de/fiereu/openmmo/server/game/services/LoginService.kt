@@ -111,23 +111,33 @@ constructor(
       log.warn { "Create character from unknown session" }
       return
     }
-    val name = event.packet.name.trim()
-    if (name.isEmpty() || name.length > 32) {
+    val requestedName = event.packet.name.trim()
+    val name = requestedName.ifEmpty { "Player${state.userId}" }
+    if (name.length > 32) {
       log.warn { "Rejected character name '${event.packet.name}' for userId=${state.userId}" }
       ctx.send(buildCharacterList(state.userId))
       return
     }
-    log.info { "Creating character '$name' for userId=${state.userId}" }
-    val gender = CharacterGender.byWireValue(event.packet.gender)
-    val startingRegion = Region.byWireValue(event.packet.startingRegion)
-    if (gender == null || startingRegion == null) {
-      log.warn {
-        "Rejected character options gender=${event.packet.gender} " +
-            "region=${event.packet.startingRegion} for userId=${state.userId}"
+    if (requestedName.isEmpty()) {
+      log.info {
+        "Current client omitted the character name; using '$name' for userId=${state.userId}"
       }
+    }
+    val gender = CharacterGender.byWireValue(event.packet.gender)
+    if (gender == null) {
+      log.warn { "Rejected character gender=${event.packet.gender} for userId=${state.userId}" }
       ctx.send(buildCharacterList(state.userId))
       return
     }
+    val startingRegion =
+        Region.byWireValue(event.packet.startingRegion)
+            ?: Region.KANTO.also {
+              log.info {
+                "Region ${event.packet.startingRegion} is not implemented; " +
+                    "starting '$name' in Kanto"
+              }
+            }
+    log.info { "Creating character '$name' for userId=${state.userId}" }
     val appearance = event.packet.appearance
     characterStore.createCharacter(
         state.userId,

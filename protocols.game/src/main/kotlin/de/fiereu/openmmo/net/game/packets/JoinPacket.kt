@@ -148,7 +148,20 @@ private val ClientInfoMapCodec: Codec<Map<Byte, String>> =
 
 private val MacBytes = fixedBytes(6)
 private val Unk1Bytes = bytesPrefixed(U8)
-private val Unk2Bytes = fixedBytes(32)
+
+// The current desktop client omits this legacy 32-byte trailer on reconnect, while fresh joins
+// still send it. Consume exactly what remains so both packet shapes stay valid.
+private object JoinTrailerBytes : Codec<ByteArray> {
+  override fun read(buf: ReadBuffer): ByteArray {
+    val bytes = ByteArray(buf.remaining())
+    if (bytes.isNotEmpty()) buf.readBytes(bytes)
+    return bytes
+  }
+
+  override fun write(buf: WriteBuffer, value: ByteArray) {
+    if (value.isNotEmpty()) buf.writeBytes(value)
+  }
+}
 
 object JoinPacketCodec : PacketCodec<JoinPacket>() {
   override fun CodecScope<JoinPacket>.body(): JoinPacket {
@@ -166,7 +179,7 @@ object JoinPacketCodec : PacketCodec<JoinPacket>() {
     val arch = field(ArchCodec) { it.arch }
     val bitness = field(BitnessCodec) { it.bitness }
     val unk1 = field(Unk1Bytes) { it.unk1 }
-    val unk2 = field(Unk2Bytes) { it.unk2 }
+    val unk2 = field(JoinTrailerBytes) { it.unk2 }
     return JoinPacket(
         authData = authData,
         mac = mac,

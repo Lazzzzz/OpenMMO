@@ -50,11 +50,12 @@ class FeedServer(private val signingKey: PrivateKey, keyStore: KeyStore) {
 
   fun certificate(): X509Certificate = certificate
 
-  /** Builds and signs a feed that sends the client to the local login server at [revision]. */
-  fun publish(revision: Long) {
+  /** Builds and signs a feed that sends the client to [loginHost] at [revision]. */
+  fun publish(revision: Long, loginHost: String = LOOPBACK) {
     val xml =
         resource(TEMPLATE)
-            .replace("{{IP}}", LOOPBACK)
+            .replace("{{IP}}", loginHost)
+            .replace("{{FEED_IP}}", LOOPBACK)
             .replace("{{PORT}}", LOGIN_PORT.toString())
             .replace("{{FEED_PORT}}", port.toString())
             .replace("{{REVISION}}", revision.toString())

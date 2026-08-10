@@ -15,6 +15,14 @@ object ConfigLoader {
     require(!rememberMeMaxAge.isNegative && !rememberMeMaxAge.isZero) {
       "server.rememberMeMaxAge must be positive"
     }
+    val gameServerPort = config.getInt("gameServer.port")
+    require(gameServerPort in 1..UShort.MAX_VALUE.toInt()) {
+      "gameServer.port must be between 1 and ${UShort.MAX_VALUE}"
+    }
+    val gameServerMaxPlayers = config.getInt("gameServer.maxPlayers")
+    require(gameServerMaxPlayers in 1..UShort.MAX_VALUE.toInt()) {
+      "gameServer.maxPlayers must be between 1 and ${UShort.MAX_VALUE}"
+    }
     return LoginServerConfig(
         host = config.getString("server.host"),
         port = config.getInt("server.port"),
@@ -24,6 +32,14 @@ object ConfigLoader {
         rootKeyFile = config.stringOrNull("server.rootKeyFile"),
         sessionSecret = secret.toByteArray(Charsets.UTF_8),
         rememberMeMaxAge = rememberMeMaxAge,
+        gameNode =
+            GameNodeConfig(
+                iPv4Address = config.getString("gameServer.ipv4Address"),
+                iPv6Address = config.getString("gameServer.ipv6Address"),
+                port = gameServerPort,
+                hostname = config.getString("gameServer.hostname"),
+                maxPlayers = gameServerMaxPlayers,
+            ),
         db =
             DbConfig(
                 host = config.getString("db.host"),

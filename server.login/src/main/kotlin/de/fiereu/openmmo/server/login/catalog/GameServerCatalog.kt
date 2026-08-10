@@ -5,6 +5,7 @@ import com.github.maltalex.ineter.base.IPv4Address
 import com.github.maltalex.ineter.base.IPv6Address
 import de.fiereu.openmmo.net.login.packets.GameServer
 import de.fiereu.openmmo.net.login.packets.GameServerNode
+import de.fiereu.openmmo.server.login.config.LoginServerConfig
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,7 +17,8 @@ data class GameServerEntry(
 )
 
 @Singleton
-class GameServerCatalog @Inject constructor() {
+class GameServerCatalog @Inject constructor(config: LoginServerConfig) {
+  private val nodeConfig = config.gameNode
   private val entries: List<GameServerEntry> =
       listOf(
           GameServerEntry(
@@ -25,18 +27,18 @@ class GameServerCatalog @Inject constructor() {
                       id = 0x00u,
                       name = "OpenMMO",
                       currentPlayers = 0u,
-                      maxPlayers = 1u,
+                      maxPlayers = nodeConfig.maxPlayers.toUShort(),
                       joinable = true,
                   ),
               node =
                   GameServerNode(
-                      iPv4Address = IPv4Address.of("127.0.0.1"),
-                      iPv6Address = IPv6Address.of("::1"),
-                      port = 7777u,
+                      iPv4Address = IPv4Address.of(nodeConfig.iPv4Address),
+                      iPv6Address = IPv6Address.of(nodeConfig.iPv6Address),
+                      port = nodeConfig.port.toUShort(),
                       weight = 0x01u,
                   ),
-              localAddress = IPAddress.of("127.0.0.1"),
-              localHostname = "localhost",
+              localAddress = IPAddress.of(nodeConfig.iPv4Address),
+              localHostname = nodeConfig.hostname,
           ),
       )
 

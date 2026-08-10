@@ -104,6 +104,9 @@ class WarpArrivalTest :
           session.state().justWarped shouldBe true
           session.sent.filterIsInstance<RenderScreenPacket>() shouldBe
               listOf(RenderScreenPacket(false))
+          val mapLoads = session.sent.filterIsInstance<LoadMapPacket>()
+          mapLoads.count { it.reloadPlayer } shouldBe 1
+          mapLoads.first().deleteCache shouldBe true
         }
       }
 
@@ -337,7 +340,10 @@ class WarpArrivalTest :
           runCurrent()
 
           session.state().justWarped shouldBe true
-          session.sent.filterIsInstance<LoadMapPacket>().isEmpty() shouldBe false
+          val mapLoads = session.sent.filterIsInstance<LoadMapPacket>()
+          mapLoads.isEmpty() shouldBe false
+          mapLoads.count { it.reloadPlayer } shouldBe 1
+          mapLoads.first().deleteCache shouldBe true
 
           session.attributes.remove(PENDING_MAP_LOAD)!!.complete(Unit)
           runCurrent()

@@ -147,7 +147,10 @@ constructor(
 
     mapLoadService.resetClientCache(ctx, destMap)
     ctx.send(mapManager.createLoadMapPacket(destMap, reloadPlayer = true, deleteCache = true))
-    mapLoadService.preloadConnectedMaps(ctx, destMap, depth = 1, reloadPlayer = true)
+    // Neighbouring maps are cache warm-ups only. Marking them reloadPlayer makes the client
+    // perform one complete player arrival per neighbour, which duplicates entities and can leave
+    // the transition overlay black after walking through a door.
+    mapLoadService.preloadConnectedMaps(ctx, destMap, depth = 1, reloadPlayer = false)
     if (state != null) awaitArrival(ctx, state, charId)
 
     log.info { "Player $charId warped to bank=${warp.targetBankId} map=${warp.targetMapId}" }

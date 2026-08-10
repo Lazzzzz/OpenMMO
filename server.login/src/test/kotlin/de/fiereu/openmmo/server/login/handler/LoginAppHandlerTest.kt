@@ -112,7 +112,15 @@ class LoginAppHandlerTest :
       ): LoginAppHandler =
           LoginAppHandler(
               users = users,
-              catalog = GameServerCatalog(),
+              catalog =
+                  GameServerCatalog(
+                      LoginServerConfig(
+                          host = "127.0.0.1",
+                          port = 0,
+                          checksumSize = 16,
+                          rootKeyResource = "game.private.pem",
+                          sessionSecret = secret,
+                      )),
               tokenIssuer = SessionTokenIssuer(secret, clock),
               rememberMeIssuer = RememberMeTokenIssuer(secret, clock),
               rememberMeVerifier = RememberMeTokenVerifier(secret, maxAge, clock),

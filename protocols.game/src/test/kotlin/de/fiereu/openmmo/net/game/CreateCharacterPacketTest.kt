@@ -4,6 +4,7 @@ import de.fiereu.openmmo.common.enums.SkinSlot
 import de.fiereu.openmmo.common.test.decodeBytes
 import de.fiereu.openmmo.common.test.encodeToBytes
 import de.fiereu.openmmo.common.test.fixture
+import de.fiereu.openmmo.common.utils.hexToBytes
 import de.fiereu.openmmo.common.utils.toHex
 import de.fiereu.openmmo.net.game.packets.CreateCharacterPacketCodec
 import io.kotest.core.spec.style.FunSpec
@@ -64,6 +65,18 @@ class CreateCharacterPacketTest :
         packet.gender shouldBe 1
         packet.startingRegion shouldBe 0
         packet.appearance.regionSelectionIndex shouldBe 0
+        CreateCharacterPacketCodec.encodeToBytes(packet).toHex() shouldBe bytes.toHex()
+      }
+
+      test("decodes the current client payload that omits the character name") {
+        val bytes = "00000102014c031c240f00021c013c0094".hexToBytes()
+
+        val packet = CreateCharacterPacketCodec.decodeBytes(bytes)
+
+        packet.name shouldBe ""
+        packet.gender shouldBe 1
+        packet.startingRegion shouldBe 2
+        packet.appearance.regionSelectionIndex shouldBe 1
         CreateCharacterPacketCodec.encodeToBytes(packet).toHex() shouldBe bytes.toHex()
       }
     })
