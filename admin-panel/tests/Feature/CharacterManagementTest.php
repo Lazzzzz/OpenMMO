@@ -20,6 +20,7 @@ class CharacterManagementTest extends TestCase
         Http::fake([
             'http://127.0.0.1:7780/players' => Http::response(['players' => []]),
             'http://127.0.0.1:7780/reset-character*' => Http::response('', 204),
+            'http://127.0.0.1:7780/pokemon*' => Http::response('', 204),
         ]);
     }
 
@@ -42,6 +43,45 @@ class CharacterManagementTest extends TestCase
 
         $this->assertDatabaseHas('character_snapshots', ['character_id' => $character->id, 'reason' => 'Avant remise à zéro']);
         Http::assertSent(fn ($request) => str_contains($request->url(), '/reset-character?id='.$character->id));
+    }
+
+    public function test_admin_can_give_a_pokemon_with_an_automatic_snapshot(): void
+    {
+        [$admin, $character] = $this->records();
+
+        $this->actingAs($admin)->post("/personnages/{$character->id}/pokemon", [
+            'dex_id' => 25,
+            'pokemon_level' => 12,
+            'container' => 'PC',
+            'nickname' => 'Sparky',
+            'is_shiny' => '1',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('character_snapshots', ['character_id' => $character->id, 'reason' => 'Avant ajout d’un Pokémon']);
+        Http::assertSent(fn ($request) => $request->method() === 'POST'
+            && str_contains($request->url(), '/pokemon?')
+            && str_contains($request->url(), 'dexId=25')
+            && str_contains($request->url(), 'container=PC'));
+    }
+
+    public function test_admin_can_delete_an_owned_pokemon_with_an_automatic_snapshot(): void
+    {
+        [$admin, $character] = $this->records();
+        DB::connection('openmmo_game')->table('pokemon')->insert([
+            'id' => 300,
+            'owner_id' => $character->id,
+            'dex_id' => 7,
+            'ot' => 'Leaf',
+            'nickname' => 'Carapuce',
+            'caught_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->delete("/personnages/{$character->id}/pokemon/300")->assertRedirect();
+
+        $this->assertDatabaseHas('character_snapshots', ['character_id' => $character->id, 'reason' => 'Avant suppression d’un Pokémon']);
+        Http::assertSent(fn ($request) => $request->method() === 'DELETE'
+            && str_contains($request->url(), '/pokemon?')
+            && str_contains($request->url(), 'id=300'));
     }
 
     private function records(): array

@@ -45,20 +45,36 @@
 
 <section class="panel timeline-panel">
     <div class="panel-head"><div><span class="eyebrow">Collection</span><h3>Équipe et PC · {{ $pokemon->count() }} Pokémon</h3></div></div>
+    @if(auth()->user()->canOperateServer())
+        <form class="inline-form pokemon-give-form" method="POST" action="{{ route('characters.pokemon.give', $character) }}">@csrf
+            <label class="field"><span>N° Pokédex</span><input type="number" name="dex_id" value="{{ old('dex_id', 1) }}" min="1" max="386" required {{ $online ? 'disabled' : '' }}></label>
+            <label class="field"><span>Niveau</span><input type="number" name="pokemon_level" value="{{ old('pokemon_level', 5) }}" min="1" max="100" required {{ $online ? 'disabled' : '' }}></label>
+            <label class="field"><span>Destination</span><select name="container" {{ $online ? 'disabled' : '' }}><option value="PARTY">Équipe</option><option value="PC">PC</option></select></label>
+            <label class="field grow"><span>Surnom (facultatif)</span><input name="nickname" value="{{ old('nickname') }}" maxlength="32" {{ $online ? 'disabled' : '' }}></label>
+            <label class="check-field give-shiny"><input type="hidden" name="is_shiny" value="0"><input type="checkbox" name="is_shiny" value="1" {{ $online ? 'disabled' : '' }}> Shiny</label>
+            <button class="button primary" type="submit" {{ $online ? 'disabled' : '' }}>Donner le Pokémon</button>
+        </form>
+        <p class="muted-copy">Le serveur calcule automatiquement les statistiques, IV, expérience et attaques adaptées au niveau.</p>
+    @endif
     <div class="pokemon-grid">
         @forelse($pokemon as $mon)
-            <form class="pokemon-card" method="POST" action="{{ route('characters.pokemon.update', [$character, $mon]) }}">@csrf @method('PUT')
-                <div class="pokemon-title"><span>#{{ $mon->dex_id }}</span><strong>{{ $mon->nickname ?: 'Pokémon '.$mon->dex_id }}</strong>@if($mon->is_shiny)<i>★ Shiny</i>@endif</div>
-                <div class="mini-form-grid">
-                    <label>Nom<input name="nickname" value="{{ $mon->nickname }}" maxlength="32" {{ $online ? 'disabled' : '' }}></label>
-                    <label>Niveau<input type="number" name="pokemon_level" value="{{ $mon->pokemon_level }}" min="1" max="100" {{ $online ? 'disabled' : '' }}></label>
-                    <label>PV<input type="number" name="hp" value="{{ $mon->hp }}" min="0" max="9999" {{ $online ? 'disabled' : '' }}></label>
-                    <label>Zone<select name="container" {{ $online ? 'disabled' : '' }}><option value="PARTY" @selected($mon->container === 'PARTY')>Équipe</option><option value="PC" @selected($mon->container === 'PC')>PC</option></select></label>
-                    <label>Emplacement<input type="number" name="container_slot" value="{{ $mon->container_slot }}" min="0" max="999" {{ $online ? 'disabled' : '' }}></label>
-                    <label class="check-field"><input type="hidden" name="is_shiny" value="0"><input type="checkbox" name="is_shiny" value="1" @checked($mon->is_shiny) {{ $online ? 'disabled' : '' }}> Shiny</label>
-                </div>
-                @if(auth()->user()->canOperateServer())<button class="button secondary wide" type="submit" {{ $online ? 'disabled' : '' }}>Mettre à jour</button>@endif
-            </form>
+            <article class="pokemon-card">
+                <form method="POST" action="{{ route('characters.pokemon.update', [$character, $mon]) }}">@csrf @method('PUT')
+                    <div class="pokemon-title"><span>#{{ $mon->dex_id }}</span><strong>{{ $mon->nickname ?: 'Pokémon '.$mon->dex_id }}</strong>@if($mon->is_shiny)<i>★ Shiny</i>@endif</div>
+                    <div class="mini-form-grid">
+                        <label>Nom<input name="nickname" value="{{ $mon->nickname }}" maxlength="32" {{ $online ? 'disabled' : '' }}></label>
+                        <label>Niveau<input type="number" name="pokemon_level" value="{{ $mon->pokemon_level }}" min="1" max="100" {{ $online ? 'disabled' : '' }}></label>
+                        <label>PV<input type="number" name="hp" value="{{ $mon->hp }}" min="0" max="9999" {{ $online ? 'disabled' : '' }}></label>
+                        <label>Zone<select name="container" {{ $online ? 'disabled' : '' }}><option value="PARTY" @selected($mon->container === 'PARTY')>Équipe</option><option value="PC" @selected($mon->container === 'PC')>PC</option></select></label>
+                        <label>Emplacement<input type="number" name="container_slot" value="{{ $mon->container_slot }}" min="0" max="999" {{ $online ? 'disabled' : '' }}></label>
+                        <label class="check-field"><input type="hidden" name="is_shiny" value="0"><input type="checkbox" name="is_shiny" value="1" @checked($mon->is_shiny) {{ $online ? 'disabled' : '' }}> Shiny</label>
+                    </div>
+                    @if(auth()->user()->canOperateServer())<button class="button secondary wide" type="submit" {{ $online ? 'disabled' : '' }}>Mettre à jour</button>@endif
+                </form>
+                @if(auth()->user()->canOperateServer())
+                    <form class="pokemon-delete" method="POST" action="{{ route('characters.pokemon.delete', [$character, $mon]) }}" data-confirm="Supprimer définitivement {{ $mon->nickname ?: 'le Pokémon #'.$mon->dex_id }} ? Une sauvegarde sera créée avant.">@csrf @method('DELETE')<button class="text-button danger-text" type="submit" {{ $online ? 'disabled' : '' }}>Supprimer ce Pokémon</button></form>
+                @endif
+            </article>
         @empty<div class="empty-state"><span>◇</span><h3>Aucun Pokémon</h3><p>Le joueur n’a pas encore choisi ou capturé de Pokémon.</p></div>@endforelse
     </div>
 </section>

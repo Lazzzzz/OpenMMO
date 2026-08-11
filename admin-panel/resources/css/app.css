@@ -207,6 +207,8 @@ td code, .profile-head code { padding: 4px 7px; border-radius: 6px; color: #5864
 .danger-zone p { margin: 6px 0 14px; color: #936572; font-size: 10px; line-height: 1.55; }
 .pokemon-grid { margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
 .pokemon-card { padding: 17px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfe; }
+.pokemon-give-form { padding: 16px; border: 1px solid #dce3ff; border-radius: 14px; background: #f7f9ff; }
+.pokemon-give-form .give-shiny { min-height: 40px; display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 10px; }
 .pokemon-title { margin-bottom: 13px; display: flex; align-items: center; gap: 8px; }
 .pokemon-title > span { color: var(--blue); font-size: 10px; font-weight: 800; }
 .pokemon-title strong { font-size: 12px; }
@@ -216,6 +218,8 @@ td code, .profile-head code { padding: 4px 7px; border-radius: 6px; color: #5864
 .mini-form-grid input, .mini-form-grid select { width: 100%; min-height: 34px; padding: 5px 8px; border: 1px solid #dce1eb; border-radius: 8px; background: white; font-size: 10px; }
 .mini-form-grid .check-field { display: flex; align-items: center; gap: 6px; }
 .mini-form-grid .check-field input { width: auto; min-height: 0; }
+.pokemon-delete { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line); text-align: center; }
+.danger-text { color: #c84154; }
 .inventory-list { margin: 17px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .inventory-list > div { padding: 10px; border: 1px solid var(--line); border-radius: 9px; display: flex; justify-content: space-between; font-size: 11px; }
 .text-button { border: 0; color: var(--blue); background: transparent; font-size: 10px; font-weight: 800; }

@@ -39,6 +39,26 @@ class GameAdminClient
         $this->client()->post('/reset-character?id='.$characterId)->throw();
     }
 
+    public function givePokemon(int $characterId, int $dexId, int $level, string $container, string $nickname, bool $shiny): void
+    {
+        $query = http_build_query([
+            'characterId' => $characterId,
+            'dexId' => $dexId,
+            'level' => $level,
+            'container' => $container,
+            'nickname' => $nickname,
+            'shiny' => $shiny ? 1 : 0,
+        ], encoding_type: PHP_QUERY_RFC3986);
+
+        $this->client()->post('/pokemon?'.$query)->throw();
+    }
+
+    public function deletePokemon(int $characterId, int $pokemonId): void
+    {
+        $query = http_build_query(['characterId' => $characterId, 'id' => $pokemonId]);
+        $this->client()->delete('/pokemon?'.$query)->throw();
+    }
+
     private function client(): PendingRequest
     {
         return Http::baseUrl(config('openmmo.admin_url'))

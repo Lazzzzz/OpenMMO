@@ -6,6 +6,7 @@ import de.fiereu.openmmo.common.Pokemon
 import de.fiereu.openmmo.common.Skin
 import de.fiereu.openmmo.common.enums.CharacterGender
 import de.fiereu.openmmo.common.enums.Direction
+import de.fiereu.openmmo.common.enums.PokemonContainer
 import de.fiereu.openmmo.common.enums.Region
 import de.fiereu.openmmo.common.enums.SkinSlot
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -221,11 +222,45 @@ constructor(
       mutateDurably(
           characterId,
           // Copy instead of mutating in place, so flusher snapshots never see a half-updated list.
-          apply = { it.copy(pokemon = (it.pokemon + pokemon).toMutableList()) },
+          apply = {
+            if (pokemon.container == PokemonContainer.PARTY) {
+              it.copy(pokemon = (it.pokemon + pokemon).toMutableList())
+            } else {
+              it.copy(pcStorage = (it.pcStorage + pokemon).toMutableList())
+            }
+          },
           rollback = {
-            it.copy(pokemon = it.pokemon.filter { m -> m.id != pokemon.id }.toMutableList())
+            it.copy(
+                pokemon = it.pokemon.filter { m -> m.id != pokemon.id }.toMutableList(),
+                pcStorage = it.pcStorage.filter { m -> m.id != pokemon.id }.toMutableList(),
+            )
           },
       )
+
+  /** Permanently remove an owned monster from either the party or PC. */
+  suspend fun removePokemon(characterId: Long, pokemonId: Long): Boolean {
+    var removed: Pokemon? = null
+    return mutateDurably(
+        characterId,
+        apply = { stored ->
+          removed =
+              (stored.pokemon + stored.pcStorage).firstOrNull { it.id == pokemonId }
+                  ?: return@mutateDurably null
+          stored.copy(
+              pokemon = stored.pokemon.filter { it.id != pokemonId }.toMutableList(),
+              pcStorage = stored.pcStorage.filter { it.id != pokemonId }.toMutableList(),
+          )
+        },
+        rollback = { stored ->
+          val monster = removed ?: return@mutateDurably stored
+          if (monster.container == PokemonContainer.PARTY) {
+            stored.copy(pokemon = (stored.pokemon + monster).toMutableList())
+          } else {
+            stored.copy(pcStorage = (stored.pcStorage + monster).toMutableList())
+          }
+        },
+    )
+  }
 
   /** Replace one party monster by id, for example after a battle changed hp, xp, or level. */
   fun updatePokemon(characterId: Long, updated: Pokemon) {

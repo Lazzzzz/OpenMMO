@@ -9,6 +9,7 @@ use App\Models\PlayerAccess;
 use App\Services\AdminActivityRecorder;
 use App\Services\CharacterSnapshotService;
 use App\Services\GameAdminClient;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -132,6 +133,67 @@ class CharacterController extends Controller
         $this->activities->record($request, 'pokemon.updated', "Pokémon #{$pokemon->dex_id} modifié pour {$character->name}", 'character', $character->id);
 
         return back()->with('success', 'Pokémon mis à jour.');
+    }
+
+    public function givePokemon(Request $request, GameCharacter $character): RedirectResponse
+    {
+        $this->authorizeOperator($request);
+        $this->ensureOffline($character);
+        $data = $request->validate([
+            'dex_id' => ['required', 'integer', 'min:1', 'max:386'],
+            'pokemon_level' => ['required', 'integer', 'min:1', 'max:100'],
+            'container' => ['required', Rule::in(['PARTY', 'PC'])],
+            'nickname' => ['nullable', 'string', 'max:32'],
+            'is_shiny' => ['nullable', 'boolean'],
+        ]);
+        $this->snapshots->capture($character, 'Avant ajout d’un Pokémon', $request->user()->id);
+        try {
+            $this->game->givePokemon(
+                (int) $character->id,
+                (int) $data['dex_id'],
+                (int) $data['pokemon_level'],
+                $data['container'],
+                $data['nickname'] ?? '',
+                $request->boolean('is_shiny'),
+            );
+        } catch (RequestException $error) {
+            $message = match ($error->response->status()) {
+                409 => 'Le personnage est connecté ou la destination choisie est pleine.',
+                422 => 'Ce numéro de Pokédex n’est pas disponible dans cette version du jeu.',
+                default => 'Le serveur n’a pas pu ajouter ce Pokémon. Réessaie dans un instant.',
+            };
+            throw ValidationException::withMessages(['pokemon' => $message]);
+        }
+        $this->activities->record($request, 'pokemon.given', "Pokémon #{$data['dex_id']} donné à {$character->name}", 'character', $character->id, [
+            'level' => (int) $data['pokemon_level'],
+            'container' => $data['container'],
+            'shiny' => $request->boolean('is_shiny'),
+        ]);
+
+        return back()->with('success', 'Pokémon ajouté. Une sauvegarde restaurable a été créée.');
+    }
+
+    public function deletePokemon(Request $request, GameCharacter $character, GamePokemon $pokemon): RedirectResponse
+    {
+        $this->authorizeOperator($request);
+        $this->ensureOffline($character);
+        abort_unless((int) $pokemon->owner_id === (int) $character->id, 404);
+        $this->snapshots->capture($character, 'Avant suppression d’un Pokémon', $request->user()->id);
+        $label = $pokemon->nickname ?: 'Pokémon '.$pokemon->dex_id;
+        try {
+            $this->game->deletePokemon((int) $character->id, (int) $pokemon->id);
+        } catch (RequestException $error) {
+            $message = $error->response->status() === 409
+                ? 'Le personnage s’est reconnecté. Déconnecte-le avant de supprimer ce Pokémon.'
+                : 'Le serveur n’a pas pu supprimer ce Pokémon. Réessaie dans un instant.';
+            throw ValidationException::withMessages(['pokemon' => $message]);
+        }
+        $this->activities->record($request, 'pokemon.deleted', "{$label} supprimé de {$character->name}", 'character', $character->id, [
+            'pokemon_id' => (int) $pokemon->id,
+            'dex_id' => (int) $pokemon->dex_id,
+        ]);
+
+        return back()->with('success', 'Pokémon supprimé. Tu peux le récupérer depuis la sauvegarde créée automatiquement.');
     }
 
     public function updateItem(Request $request, GameCharacter $character): RedirectResponse

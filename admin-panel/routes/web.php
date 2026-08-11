@@ -42,6 +42,8 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/personnages/{character}/reset', [CharacterController::class, 'resetProgress'])->name('characters.reset');
     Route::post('/personnages/{character}/restaurer/{snapshot}', [CharacterController::class, 'restore'])->name('characters.restore');
     Route::put('/personnages/{character}/pokemon/{pokemon}', [CharacterController::class, 'updatePokemon'])->name('characters.pokemon.update');
+    Route::post('/personnages/{character}/pokemon', [CharacterController::class, 'givePokemon'])->name('characters.pokemon.give');
+    Route::delete('/personnages/{character}/pokemon/{pokemon}', [CharacterController::class, 'deletePokemon'])->name('characters.pokemon.delete');
     Route::put('/personnages/{character}/inventaire', [CharacterController::class, 'updateItem'])->name('characters.items.update');
 
     Route::get('/equipe', [AdminUserController::class, 'index'])->name('admins.index');

@@ -346,6 +346,7 @@ constructor(
           isRaidEncounter = isRaidEncounter,
           isEgg = isEgg,
           caughtAt = caughtAt,
+          heldItemId = 0,
       )
 
   private fun PokemonRecord.toPokemon(): Pokemon =

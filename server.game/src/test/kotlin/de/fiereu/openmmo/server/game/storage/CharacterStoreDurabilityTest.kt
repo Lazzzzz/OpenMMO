@@ -62,6 +62,40 @@ class CharacterStoreDurabilityTest :
         }
       }
 
+      test("giving a monster to the PC persists it in PC storage") {
+        runTest {
+          val repo = FakeCharacterRepository()
+          val store = CharacterStore(repo, EntityIdService(), backgroundScope)
+          val created = store.createCharacter(1, "Ash", CharacterGender.MALE, Region.HOENN)
+          val monster =
+              caughtMonster(created.info.id)
+                  .copy(
+                      container = PokemonContainer.PC,
+                      containerSlot = 4,
+                  )
+
+          store.addPokemon(created.info.id, monster) shouldBe true
+
+          repo.saved[created.info.id]!!.pokemon.size shouldBe 0
+          repo.saved[created.info.id]!!.pcStorage.single().id shouldBe monster.id
+        }
+      }
+
+      test("removing a monster deletes it durably from the character") {
+        runTest {
+          val repo = FakeCharacterRepository()
+          val store = CharacterStore(repo, EntityIdService(), backgroundScope)
+          val created = store.createCharacter(1, "Ash", CharacterGender.MALE, Region.HOENN)
+          val monster = caughtMonster(created.info.id)
+          store.addPokemon(created.info.id, monster)
+
+          store.removePokemon(created.info.id, monster.id) shouldBe true
+
+          repo.saved[created.info.id]!!.pokemon.size shouldBe 0
+          store.getCharacter(created.info.id)!!.pokemon.size shouldBe 0
+        }
+      }
+
       test("walking does not pay for a write, it waits for the checkpoint") {
         runTest {
           val repo = FakeCharacterRepository()
