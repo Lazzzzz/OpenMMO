@@ -19,6 +19,7 @@ data class BattleRules(
     val catchable: Boolean = true,
     val escapable: Boolean = true,
     val trainer: TrainerDef? = null,
+    val pvp: Boolean = false,
 )
 
 /** One running battle. A wild encounter is the case where [opponent] holds a single monster. */
@@ -33,6 +34,7 @@ class BattleInstance(
     val escapable: Boolean = true,
     /** The trainer who owns [opponent], or null for a wild encounter. */
     val trainer: TrainerDef? = null,
+    val pvp: Boolean = false,
 ) {
   val key: BattleInterestKey = BattleInterestKey(battleId)
   var turn: Int = 1

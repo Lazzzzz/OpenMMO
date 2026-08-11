@@ -3,8 +3,11 @@ package de.fiereu.openmmo.net.game
 import de.fiereu.network.Direction
 import de.fiereu.network.Side
 import de.fiereu.openmmo.net.game.packets.ChatMessagePacket
+import de.fiereu.openmmo.net.game.packets.ClientOpcode09Packet
 import de.fiereu.openmmo.net.game.packets.DeleteCharacterPacket
 import de.fiereu.openmmo.net.game.packets.DeleteCharacterResultPacket
+import de.fiereu.openmmo.net.game.packets.DialogChoicePacket
+import de.fiereu.openmmo.net.game.packets.DuelChallengePacket
 import de.fiereu.openmmo.net.game.packets.EntityMovePacket
 import de.fiereu.openmmo.net.game.packets.GbaEntityMovePacket
 import de.fiereu.openmmo.net.game.packets.JoinPacket
@@ -14,6 +17,7 @@ import de.fiereu.openmmo.net.game.packets.LoadMapPacket
 import de.fiereu.openmmo.net.game.packets.NullPacket
 import de.fiereu.openmmo.net.game.packets.StoryFlagUpdatePacket
 import de.fiereu.openmmo.net.game.packets.TokenPayloadPacket
+import de.fiereu.openmmo.net.game.packets.TradeSelectMonPacket
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.shouldBe
@@ -83,6 +87,25 @@ class GameProtocolTest :
             TokenPayloadPacket::class
       }
 
+      test("0x25 split: duel challenge C2S, dialog choice S2C") {
+        GameProtocol.incomingRegistration(Side.SERVER, 0x25u)?.type shouldBe
+            DuelChallengePacket::class
+        GameProtocol.incomingRegistration(Side.CLIENT, 0x25u)?.type shouldBe
+            DialogChoicePacket::class
+      }
+
+      test("0x09 is direction-specific") {
+        GameProtocol.incomingRegistration(Side.SERVER, 0x09u)?.type shouldBe
+            ClientOpcode09Packet::class
+        GameProtocol.incomingRegistration(Side.CLIENT, 0x09u)?.type shouldBe
+            ChatMessagePacket::class
+      }
+
+      test("trade pokemon selection is C2S opcode 0x52") {
+        GameProtocol.incomingRegistration(Side.SERVER, 0x52u)?.type shouldBe
+            TradeSelectMonPacket::class
+      }
+
       test("captured character deletion opcodes are direction-specific") {
         GameProtocol.outgoingRegistration(Side.CLIENT, DeleteCharacterPacket::class)
             ?.opcode shouldBe 0x64u
@@ -93,7 +116,6 @@ class GameProtocolTest :
       test("bidi packets are registered both directions") {
         val bidi =
             listOf(
-                ChatMessagePacket::class,
                 LoadMapPacket::class,
                 KeepAlivePacket::class,
             )

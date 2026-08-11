@@ -15,6 +15,8 @@ data class PlayerState(
     @field:Volatile var inDialog: Boolean = false,
     @field:Volatile var dialogNpcEntityId: Long = 0,
     @field:Volatile var dialogSeqId: Int = 0,
+    /** Last player/entity clicked; social actions such as trade only carry an action byte. */
+    @field:Volatile var interactionTargetId: Long? = null,
     @field:Volatile var regionId: Int = 1,
     @field:Volatile var bankId: Int = 51,
     @field:Volatile var mapId: Int = 3,

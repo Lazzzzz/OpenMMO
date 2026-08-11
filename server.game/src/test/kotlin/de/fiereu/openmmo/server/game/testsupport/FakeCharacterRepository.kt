@@ -30,6 +30,23 @@ class FakeCharacterRepository : CharacterRepository {
     saved[current.info.id] = current
   }
 
+  override suspend fun saveExchange(
+      previousLeft: StoredCharacter,
+      currentLeft: StoredCharacter,
+      previousRight: StoredCharacter,
+      currentRight: StoredCharacter,
+  ) {
+    if (failNextSave) {
+      failNextSave = false
+      throw IllegalStateException("simulated save failure")
+    }
+    saveCount.addAndGet(2)
+    lastPrevious[currentLeft.info.id] = previousLeft
+    lastPrevious[currentRight.info.id] = previousRight
+    saved[currentLeft.info.id] = currentLeft
+    saved[currentRight.info.id] = currentRight
+  }
+
   override suspend fun deleteById(userId: Int, id: Long): Boolean {
     val stored = saved[id] ?: return false
     if (stored.info.userId != userId) return false

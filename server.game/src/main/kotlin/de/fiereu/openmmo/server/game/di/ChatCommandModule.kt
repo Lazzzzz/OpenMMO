@@ -3,9 +3,11 @@ package de.fiereu.openmmo.server.game.di
 import dagger.Binds
 import dagger.Module
 import dagger.multibindings.IntoSet
+import de.fiereu.openmmo.server.game.services.command.AbandonCommand
 import de.fiereu.openmmo.server.game.services.command.CatchCommand
 import de.fiereu.openmmo.server.game.services.command.ChatCommand
 import de.fiereu.openmmo.server.game.services.command.HelpCommand
+import de.fiereu.openmmo.server.game.services.command.LuckyEggCommand
 import de.fiereu.openmmo.server.game.services.command.PosCommand
 import de.fiereu.openmmo.server.game.services.command.StoryCommand
 import de.fiereu.openmmo.server.game.services.command.TestBattleCommand
@@ -16,7 +18,11 @@ import de.fiereu.openmmo.server.game.services.command.TestBattleCommand
  */
 @Module
 interface ChatCommandModule {
+  @Binds @IntoSet fun abandonCommand(command: AbandonCommand): ChatCommand
+
   @Binds @IntoSet fun helpCommand(command: HelpCommand): ChatCommand
+
+  @Binds @IntoSet fun luckyEggCommand(command: LuckyEggCommand): ChatCommand
 
   @Binds @IntoSet fun posCommand(command: PosCommand): ChatCommand
 

@@ -39,6 +39,14 @@ interface CharacterRepository {
   /** A null [previous] writes every row. */
   suspend fun saveChanges(previous: StoredCharacter?, current: StoredCharacter)
 
+  /** Writes both sides of a player trade in one database transaction. */
+  suspend fun saveExchange(
+      previousLeft: StoredCharacter,
+      currentLeft: StoredCharacter,
+      previousRight: StoredCharacter,
+      currentRight: StoredCharacter,
+  )
+
   /** Deletes a character owned by the user. */
   suspend fun deleteById(userId: Int, id: Long): Boolean
 }
@@ -68,6 +76,20 @@ constructor(
   override suspend fun saveChanges(previous: StoredCharacter?, current: StoredCharacter) =
       withContext(dispatcher) {
         dsl.transaction { cfg -> writeChanges(cfg.dsl(), previous, current) }
+      }
+
+  override suspend fun saveExchange(
+      previousLeft: StoredCharacter,
+      currentLeft: StoredCharacter,
+      previousRight: StoredCharacter,
+      currentRight: StoredCharacter,
+  ) =
+      withContext(dispatcher) {
+        dsl.transaction { cfg ->
+          val tx = cfg.dsl()
+          writeChanges(tx, previousLeft, currentLeft)
+          writeChanges(tx, previousRight, currentRight)
+        }
       }
 
   override suspend fun deleteById(userId: Int, id: Long): Boolean =
@@ -345,8 +367,8 @@ constructor(
           isFatefulEncounter = isFatefulEncounter,
           isRaidEncounter = isRaidEncounter,
           isEgg = isEgg,
+          heldItemId = heldItemId,
           caughtAt = caughtAt,
-          heldItemId = 0,
       )
 
   private fun PokemonRecord.toPokemon(): Pokemon =
@@ -378,6 +400,7 @@ constructor(
           isFatefulEncounter = isFatefulEncounter ?: false,
           isRaidEncounter = isRaidEncounter ?: false,
           isEgg = isEgg ?: false,
+          heldItemId = heldItemId ?: 0,
           caughtAt = caughtAt,
       )
 

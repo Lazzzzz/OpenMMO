@@ -19,7 +19,34 @@ data class DuelChallengePacket(
     val natureCap: Byte?,
     val items: List<DuelItemRestriction>?,
     val tier: Byte?,
-)
+    /** Client-version-specific challenge options not needed by the current 1v1 engine. */
+    val extension: ByteArray = byteArrayOf(),
+) {
+  /** Old clients use subtype 7; current clients use subtype 0 plus an extended rules block. */
+  val isDuel: Boolean
+    get() =
+        battleTypeId == 7.toByte() ||
+            timed ||
+            battleFormat != 0.toByte() ||
+            typeRestriction != 0.toByte() ||
+            natureRestriction != 0.toByte() ||
+            allowedFormat != 0.toByte() ||
+            itemLevelCap != null ||
+            natureCap != null ||
+            items != null ||
+            tier != null ||
+            extension.isNotEmpty()
+}
+
+private val RemainingBytesCodec: Codec<ByteArray> =
+    object : Codec<ByteArray> {
+      override fun read(buf: ReadBuffer): ByteArray =
+          ByteArray(buf.remaining()).also { buf.readBytes(it) }
+
+      override fun write(buf: WriteBuffer, value: ByteArray) {
+        buf.writeBytes(value)
+      }
+    }
 
 private val DuelItemRestrictionCodec: Codec<DuelItemRestriction> =
     object : Codec<DuelItemRestriction> {
@@ -67,6 +94,10 @@ object DuelChallengePacketCodec : PacketCodec<DuelChallengePacket>() {
           list
         } else null
     val tier: Byte? = if (flags and 64 != 0) field(S8) { it.tier!! } else null
+    // Several current clients append 17 or 29 bytes of extra rules. They are opaque to the
+    // server's simple reciprocal 1v1 flow, but still belong to this frame and must be consumed;
+    // leaving them behind makes ProtocolHandler reject the complete packet and disconnect.
+    val extension = field(RemainingBytesCodec) { it.extension }
     return DuelChallengePacket(
         targetPlayerName = targetPlayerName,
         battleTypeId = battleTypeId,
@@ -79,6 +110,7 @@ object DuelChallengePacketCodec : PacketCodec<DuelChallengePacket>() {
         natureCap = natureCap,
         items = items,
         tier = tier,
+        extension = extension,
     )
   }
 }

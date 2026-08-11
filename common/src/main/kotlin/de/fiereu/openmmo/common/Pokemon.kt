@@ -32,7 +32,9 @@ data class Pokemon(
     val isFatefulEncounter: Boolean,
     val isRaidEncounter: Boolean,
     val caughtAt: LocalDateTime,
-    val isEgg: Boolean = false
+    val isEgg: Boolean = false,
+    /** Server-side held item. Zero means that the Pokemon is not holding anything. */
+    val heldItemId: Int = 0,
 ) {
   // seed is an unsigned 32-bit value on the wire, so mask before the modulo to avoid a negative
   // index when the high bit is set.

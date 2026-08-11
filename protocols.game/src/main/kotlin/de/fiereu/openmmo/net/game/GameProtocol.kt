@@ -38,7 +38,9 @@ object GameProtocol : Protocol() {
     c2s<ChatMessageSendPacket>(0x08u, ChatMessageSendPacketCodec)
     s2c<EntityLeavePacket>(0x08u, EntityLeavePacketCodec)
 
-    bidi<ChatMessagePacket>(0x09u, ChatMessagePacketCodec)
+    // The client payload differs from the server chat representation on this opcode.
+    c2s<ClientOpcode09Packet>(0x09u, ClientOpcode09PacketCodec)
+    s2c<ChatMessagePacket>(0x09u, ChatMessagePacketCodec)
 
     c2s<MoveLearnReplyPacket>(0x0Au, MoveLearnReplyPacketCodec)
     s2c<WorldFlagTableResetPacket>(0x0Au, WorldFlagTableResetPacketCodec)
@@ -111,7 +113,8 @@ object GameProtocol : Protocol() {
     c2s<ShopSellRequestPacket>(0x24u, ShopSellRequestPacketCodec)
     s2c<NpcPanelTogglePacket>(0x24u, NpcPanelTogglePacketCodec)
 
-    bidi<DialogChoicePacket>(0x25u, DialogChoicePacketCodec)
+    c2s<DuelChallengePacket>(0x25u, DuelChallengePacketCodec)
+    s2c<DialogChoicePacket>(0x25u, DialogChoicePacketCodec)
 
     bidi<DialogOptionPacket>(0x26u, DialogOptionPacketCodec)
 

@@ -10,12 +10,15 @@ import de.fiereu.openmmo.net.game.packets.BlockPlayerPacket
 import de.fiereu.openmmo.net.game.packets.CancelSocialInteractionPacket
 import de.fiereu.openmmo.net.game.packets.ChatMessagePacket
 import de.fiereu.openmmo.net.game.packets.ChatMessageSendPacket
+import de.fiereu.openmmo.net.game.packets.ClientOpcode09Packet
 import de.fiereu.openmmo.net.game.packets.CreateCharacterPacket
 import de.fiereu.openmmo.net.game.packets.DeleteCharacterPacket
 import de.fiereu.openmmo.net.game.packets.DialogChoicePacket
+import de.fiereu.openmmo.net.game.packets.DuelChallengePacket
 import de.fiereu.openmmo.net.game.packets.EntityInteractPacket
 import de.fiereu.openmmo.net.game.packets.ExchangeItemRequestPacket
 import de.fiereu.openmmo.net.game.packets.FaceDirectionPacket
+import de.fiereu.openmmo.net.game.packets.InGameChallengeResponsePacket
 import de.fiereu.openmmo.net.game.packets.JoinPacket
 import de.fiereu.openmmo.net.game.packets.KeepAlivePacket
 import de.fiereu.openmmo.net.game.packets.MapLoadedAckPacket
@@ -27,7 +30,10 @@ import de.fiereu.openmmo.net.game.packets.RequestPlayerPacket
 import de.fiereu.openmmo.net.game.packets.RequestSocialProfilePacket
 import de.fiereu.openmmo.net.game.packets.SelectCharacterPacket
 import de.fiereu.openmmo.net.game.packets.ShopSellRequestPacket
+import de.fiereu.openmmo.net.game.packets.StringCommandPacket
 import de.fiereu.openmmo.net.game.packets.TileInteractPacket
+import de.fiereu.openmmo.net.game.packets.TradeActionPacket
+import de.fiereu.openmmo.net.game.packets.TradeSelectMonPacket
 import de.fiereu.openmmo.net.game.packets.UnblockPlayerPacket
 import de.fiereu.openmmo.net.game.packets.battle.BattleActionPacket
 import de.fiereu.openmmo.net.game.packets.battle.BattleActionSelectPacket
@@ -65,6 +71,7 @@ import de.fiereu.openmmo.server.game.script.ScriptRunner
 import de.fiereu.openmmo.server.game.services.BattleService
 import de.fiereu.openmmo.server.game.services.ChatService
 import de.fiereu.openmmo.server.game.services.DialogService
+import de.fiereu.openmmo.server.game.services.DuelService
 import de.fiereu.openmmo.server.game.services.GuildService
 import de.fiereu.openmmo.server.game.services.InteractionService
 import de.fiereu.openmmo.server.game.services.LoginService
@@ -73,6 +80,7 @@ import de.fiereu.openmmo.server.game.services.MultiplayerService
 import de.fiereu.openmmo.server.game.services.PresenceService
 import de.fiereu.openmmo.server.game.services.ShopService
 import de.fiereu.openmmo.server.game.services.SocialService
+import de.fiereu.openmmo.server.game.services.TradeService
 import de.fiereu.openmmo.server.game.session.PLAYER_STATE
 import de.fiereu.openmmo.server.game.session.SCRIPT_SCOPE
 import de.fiereu.openmmo.server.game.session.SessionRegistry
@@ -96,6 +104,8 @@ constructor(
     private val socialService: SocialService,
     private val guildService: GuildService,
     private val battleService: BattleService,
+    private val duelService: DuelService,
+    private val tradeService: TradeService,
     private val chatService: ChatService,
     private val shopService: ShopService,
     private val scriptRunner: ScriptRunner,
@@ -119,7 +129,9 @@ constructor(
     onSuspend<TileInteractPacket> { event -> interactionService.onTileInteract(event) }
     onSuspend<DialogActionResponsePacket> { event -> dialogService.onInteractive(event) }
     onSuspend<DialogChoicePacket> { event -> dialogService.onDialogChoice(event) }
-    onSuspend<ExchangeItemRequestPacket> { event -> shopService.onBuy(event) }
+    onSuspend<ExchangeItemRequestPacket> { event ->
+      if (!tradeService.onSelectItem(event)) shopService.onBuy(event)
+    }
     onSuspend<ShopSellRequestPacket> { event -> shopService.onSell(event) }
 
     on<AddFriendPacket> { event -> socialService.onAddFriend(event) }
@@ -128,6 +140,26 @@ constructor(
     on<UnblockPlayerPacket> { event -> socialService.onUnblockPlayer(event) }
     on<RequestSocialProfilePacket> { event -> socialService.onRequestSocialProfile(event) }
     on<CancelSocialInteractionPacket> { event -> socialService.onCancelSocialInteraction(event) }
+    on<DuelChallengePacket> { event ->
+      // Legacy clients use subtype 7 for a duel. The current client uses subtype 0 for both menu
+      // actions, but only a duel carries rule values.
+      log.info {
+        "Social request target=${event.packet.targetPlayerName} subtype=${event.packet.battleTypeId} " +
+            "duel=${event.packet.isDuel} format=${event.packet.battleFormat} " +
+            "restrictions=${event.packet.typeRestriction}/${event.packet.natureRestriction}/" +
+            "${event.packet.allowedFormat} optional=${event.packet.itemLevelCap != null}/" +
+            "${event.packet.natureCap != null}/${event.packet.items?.size}/${event.packet.tier} " +
+            "extension=${event.packet.extension.size}"
+      }
+      if (event.packet.isDuel) duelService.onChallenge(event) else tradeService.onChallenge(event)
+    }
+    on<InGameChallengeResponsePacket> { event -> duelService.onResponse(event) }
+    onSuspend<TradeActionPacket> { event -> tradeService.onAction(event) }
+    on<TradeSelectMonPacket> { event -> tradeService.onSelectPokemon(event) }
+    on<ClientOpcode09Packet> { event -> tradeService.onClientOpcode09(event) }
+    on<StringCommandPacket> { event ->
+      if (!tradeService.onMoney(event)) tradeService.onCommand(event)
+    }
 
     onSuspend<GuildCreatePacket> { event -> guildService.onCreateGuild(event) }
     onSuspend<GuildInvitePacket> { event -> guildService.onGuildInvite(event) }
@@ -147,14 +179,20 @@ constructor(
     onSuspend<MoveLearnReplyPacket> { event -> battleService.onMoveLearnReply(event) }
     on<BattlePartySwitchPacket> { event -> battleService.onBattlePacket(event) }
     on<BattleActionPacket> { event -> battleService.onBattlePacket(event) }
-    onSuspend<BattleActionSelectPacket> { event -> battleService.onBattleAction(event) }
-    on<BattleLeavePacket> { event -> battleService.onBattlePacket(event) }
+    onSuspend<BattleActionSelectPacket> { event ->
+      if (!duelService.onBattleAction(event)) battleService.onBattleAction(event)
+    }
+    on<BattleLeavePacket> { event ->
+      if (!duelService.forfeit(event.session)) battleService.onBattlePacket(event)
+    }
     on<BattleSequencePacket> { event -> battleService.onBattlePacket(event) }
     on<BattleSlotActionPacket> { event -> battleService.onBattlePacket(event) }
     on<BattleSwitchSelectionsPacket> { event -> battleService.onBattlePacket(event) }
     on<BattleUseItemPacket> { event -> battleService.onBattlePacket(event) }
     on<BattleAppearancePacket> { event -> battleService.onBattlePacket(event) }
-    on<BattleCancelRequestPacket> { event -> battleService.onBattlePacket(event) }
+    on<BattleCancelRequestPacket> { event ->
+      if (!duelService.forfeit(event.session)) battleService.onBattlePacket(event)
+    }
     on<BattleSimulationRequestPacket> { event -> battleService.onBattlePacket(event) }
     on<BattleReadyPacket> { event -> battleService.onBattlePacket(event) }
     on<BattleActionSubmitPacket> { event -> battleService.onBattlePacket(event) }
@@ -165,7 +203,9 @@ constructor(
     on<BattleTransitionReadyPacket> { event -> battleService.onBattlePacket(event) }
     on<BattleTeamPreviewConfirmPacket> { event -> battleService.onBattlePacket(event) }
     on<BattleRewardSelectPacket> { event -> battleService.onBattlePacket(event) }
-    onSuspend<MapLoadedAckPacket> { event -> battleService.onClientReady(event) }
+    onSuspend<MapLoadedAckPacket> { event ->
+      if (!duelService.onClientReady(event)) battleService.onClientReady(event)
+    }
 
     // The client sends an empty heartbeat packet.
     on<NullPacket> {}
@@ -183,7 +223,8 @@ constructor(
     if (charId != null) {
       // The battle flush must land before the unload evicts the character from the cache, and
       // before the rollback, which would otherwise be overwritten by the party it persists.
-      battleService.onDisconnect(session)
+      if (!duelService.onDisconnect(session)) battleService.onDisconnect(session)
+      tradeService.onDisconnect(session)
       // Undo the interrupted script here rather than leaving it to the coroutine's own cleanup,
       // which runs on another thread and would race the flush below.
       scriptRunner.rollBack(session, state, entityId = -1)

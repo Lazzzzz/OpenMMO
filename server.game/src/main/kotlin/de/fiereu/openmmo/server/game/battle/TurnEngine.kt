@@ -82,6 +82,40 @@ constructor(
     return events
   }
 
+  /** Resolves a turn where both sides are controlled by players. */
+  fun resolvePvpTurn(
+      battle: BattleInstance,
+      playerMoveId: Short,
+      opponentMoveId: Short,
+  ): List<BattleEvent> {
+    val events = mutableListOf<BattleEvent>()
+    val player = battle.activeMon()
+    val opponent = battle.opponentMon()
+    val playerAction = TurnAction(player, opponent, moves.get(playerMoveId.toInt()))
+    val opponentAction = TurnAction(opponent, player, moves.get(opponentMoveId.toInt()))
+    for (action in order(battle, playerAction, opponentAction)) {
+      if (action.attacker.fainted) continue
+      execute(battle, action, events)
+      if (player.fainted || opponent.fainted) break
+    }
+    return events
+  }
+
+  /** Resolves one explicit attack, used when the other PvP player switches. */
+  fun resolvePvpAttack(
+      battle: BattleInstance,
+      playerAttacks: Boolean,
+      moveId: Short,
+  ): List<BattleEvent> {
+    val events = mutableListOf<BattleEvent>()
+    val attacker = if (playerAttacks) battle.activeMon() else battle.opponentMon()
+    val defender = if (playerAttacks) battle.opponentMon() else battle.activeMon()
+    if (!attacker.fainted && !defender.fainted) {
+      execute(battle, TurnAction(attacker, defender, moves.get(moveId.toInt())), events)
+    }
+    return events
+  }
+
   /** A voluntary switch spends the player's turn, so the enemy attacks the incoming monster. */
   fun resolveSwitchTurn(battle: BattleInstance): List<BattleEvent> {
     val events = mutableListOf<BattleEvent>()

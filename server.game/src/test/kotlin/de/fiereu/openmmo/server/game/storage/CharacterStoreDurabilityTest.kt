@@ -96,6 +96,39 @@ class CharacterStoreDurabilityTest :
         }
       }
 
+      test("equipping a held item removes it from the bag and persists it on the monster") {
+        runTest {
+          val repo = FakeCharacterRepository()
+          val store = CharacterStore(repo, EntityIdService(), backgroundScope)
+          val created = store.createCharacter(1, "Ash", CharacterGender.MALE, Region.HOENN)
+          val monster = caughtMonster(created.info.id)
+          store.addPokemon(created.info.id, monster)
+          store.addItem(created.info.id, itemId = 5231, amount = 1)
+
+          store.equipHeldItem(created.info.id, monster.id, itemId = 5231) shouldBe true
+
+          repo.saved[created.info.id]!!.items[5231] shouldBe null
+          repo.saved[created.info.id]!!.pokemon.single().heldItemId shouldBe 5231
+        }
+      }
+
+      test("a failed held item write restores the bag and the monster") {
+        runTest {
+          val repo = FakeCharacterRepository()
+          val store = CharacterStore(repo, EntityIdService(), backgroundScope)
+          val created = store.createCharacter(1, "Ash", CharacterGender.MALE, Region.HOENN)
+          val monster = caughtMonster(created.info.id)
+          store.addPokemon(created.info.id, monster)
+          store.addItem(created.info.id, itemId = 5231, amount = 1)
+          repo.failNextSave = true
+
+          store.equipHeldItem(created.info.id, monster.id, itemId = 5231) shouldBe false
+
+          store.getCharacter(created.info.id)!!.items[5231] shouldBe 1
+          store.getCharacter(created.info.id)!!.pokemon.single().heldItemId shouldBe 0
+        }
+      }
+
       test("walking does not pay for a write, it waits for the checkpoint") {
         runTest {
           val repo = FakeCharacterRepository()
@@ -243,5 +276,14 @@ private class GatedRepository(
       release.await()
     }
     delegate.saveChanges(previous, current)
+  }
+
+  override suspend fun saveExchange(
+      previousLeft: StoredCharacter,
+      currentLeft: StoredCharacter,
+      previousRight: StoredCharacter,
+      currentRight: StoredCharacter,
+  ) {
+    delegate.saveExchange(previousLeft, currentLeft, previousRight, currentRight)
   }
 }

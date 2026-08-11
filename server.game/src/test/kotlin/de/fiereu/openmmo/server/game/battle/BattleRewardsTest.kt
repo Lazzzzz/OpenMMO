@@ -75,6 +75,17 @@ class BattleRewardsTest :
         rewards.trainerXp(rattata, 11) shouldBe rewards.wildXp(rattata, 11) * 3 / 2
       }
 
+      test("an XP multiplier doubles the complete reward") {
+        val start = ExpCurves.totalXpFor(GrowthRate.MEDIUM_SLOW, 5)
+        val mon = winner(level = 5, xp = start)
+        val rattata = species.get(RATTATA)!!
+
+        val reward = rewards.apply(mon, rattata, 3, xpMultiplier = 2)
+
+        reward.xpGained shouldBe rewards.wildXp(rattata, 3) * 2
+        reward.newXp shouldBe start + reward.xpGained
+      }
+
       test("ev gains alone move neither the stats nor the hp") {
         val mon = winner(level = 50, xp = ExpCurves.totalXpFor(GrowthRate.MEDIUM_SLOW, 50))
         val before = mon.stats

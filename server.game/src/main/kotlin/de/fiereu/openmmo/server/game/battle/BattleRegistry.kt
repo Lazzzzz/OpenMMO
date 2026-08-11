@@ -32,6 +32,7 @@ class BattleRegistry @Inject constructor() {
             rules.catchable,
             rules.escapable,
             rules.trainer,
+            rules.pvp,
         )
     byChar[charId] = battle
     return battle

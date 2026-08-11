@@ -37,6 +37,7 @@ constructor(
     if (state.inDialog) return
     val stored = currentCharacter(state) ?: return
     val npcEntityId = event.packet.entityId
+    state.interactionTargetId = npcEntityId
 
     val currentMap =
         mapManager.getMap(

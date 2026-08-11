@@ -78,6 +78,7 @@ constructor(
 ) {
 
   private val pokeBallItemId: Short by lazy { items.idOf(Items.POKE_BALL).toShort() }
+  private val luckyEggItemId: Int by lazy { items.idOf(Items.LUCKY_EGG) }
 
   private val pendingLearns = ConcurrentHashMap<Long, PendingMoveLearn>()
 
@@ -454,7 +455,15 @@ constructor(
    */
   private fun awardXp(battle: BattleInstance, defeated: BattleMonState) {
     val winner = battle.activeMon()
-    val reward = rewards.apply(winner, defeated.species, defeated.level, battle.trainer != null)
+    val xpMultiplier = if (winner.source.heldItemId == luckyEggItemId) 2 else 1
+    val reward =
+        rewards.apply(
+            winner,
+            defeated.species,
+            defeated.level,
+            battle.trainer != null,
+            xpMultiplier,
+        )
     log.info {
       "char=${battle.charId} won: +${reward.xpGained} xp, level ${winner.level} -> ${reward.newLevel}"
     }

@@ -300,6 +300,86 @@ constructor(
           },
       )
 
+  /** Moves one bag item onto an owned party Pokemon and returns its previous item to the bag. */
+  suspend fun equipHeldItem(characterId: Long, pokemonId: Long, itemId: Int): Boolean {
+    var previousItemId = 0
+    return mutateDurably(
+        characterId,
+        apply = { stored ->
+          val pokemon =
+              stored.pokemon.firstOrNull { it.id == pokemonId } ?: return@mutateDurably null
+          if (pokemon.heldItemId == itemId || (stored.items[itemId] ?: 0) <= 0) {
+            return@mutateDurably null
+          }
+          previousItemId = pokemon.heldItemId
+          val items = stored.items.toMutableMap()
+          val remaining = items.getValue(itemId) - 1
+          if (remaining == 0) items.remove(itemId) else items[itemId] = remaining
+          if (previousItemId != 0) items[previousItemId] = (items[previousItemId] ?: 0) + 1
+          stored.copy(
+              pokemon =
+                  stored.pokemon
+                      .map { if (it.id == pokemonId) it.copy(heldItemId = itemId) else it }
+                      .toMutableList(),
+              items = items,
+          )
+        },
+        rollback = { stored ->
+          val items = stored.items.toMutableMap()
+          items[itemId] = (items[itemId] ?: 0) + 1
+          if (previousItemId != 0) {
+            val restored = items.getValue(previousItemId) - 1
+            if (restored == 0) items.remove(previousItemId) else items[previousItemId] = restored
+          }
+          stored.copy(
+              pokemon =
+                  stored.pokemon
+                      .map { if (it.id == pokemonId) it.copy(heldItemId = previousItemId) else it }
+                      .toMutableList(),
+              items = items,
+          )
+        },
+    )
+  }
+
+  /**
+   * Applies both halves of a player exchange and publishes them only after the database transaction
+   * succeeds. Locks are always acquired by character id, preventing two crossed trades deadlocking.
+   */
+  suspend fun exchangeDurably(
+      leftId: Long,
+      rightId: Long,
+      exchange:
+          (left: StoredCharacter, right: StoredCharacter) -> Pair<
+                  StoredCharacter, StoredCharacter>?,
+  ): Boolean {
+    if (leftId == rightId) return false
+    val firstId = minOf(leftId, rightId)
+    val secondId = maxOf(leftId, rightId)
+    return lockFor(firstId).withLock {
+      lockFor(secondId).withLock {
+        val left = characters[leftId] ?: return@withLock false
+        val right = characters[rightId] ?: return@withLock false
+        val (newLeft, newRight) = exchange(left, right) ?: return@withLock false
+        try {
+          repository.saveExchange(left, newLeft, right, newRight)
+        } catch (e: CancellationException) {
+          throw e
+        } catch (e: Exception) {
+          log.warn(e) { "Failed to persist exchange $leftId <-> $rightId" }
+          return@withLock false
+        }
+        characters[leftId] = newLeft
+        characters[rightId] = newRight
+        persisted[leftId] = newLeft
+        persisted[rightId] = newRight
+        dirtySince.remove(leftId)
+        dirtySince.remove(rightId)
+        true
+      }
+    }
+  }
+
   /** Set (or clear with null) the runtime destination for MAP_DYNAMIC warps (setdynamicwarp). */
   fun setDynamicWarp(characterId: Long, warp: DynamicWarp?) {
     mutate(characterId) { it.copy(info = it.info.copy(dynamicWarp = warp)) }

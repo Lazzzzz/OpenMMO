@@ -6,7 +6,10 @@ import de.fiereu.openmmo.common.utils.hexToBytes
 import de.fiereu.openmmo.net.game.packets.LocalPlayerStatePacket
 import de.fiereu.openmmo.net.game.packets.PokemonContainerPacket
 import de.fiereu.openmmo.net.game.packets.WorldFlagTableResetPacket
+import de.fiereu.openmmo.net.game.packets.WorldStateValuePacket
 import de.fiereu.openmmo.server.game.storage.StoredCharacter
+import java.time.LocalDate
+import java.time.ZoneOffset
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,6 +25,12 @@ private val WORLD_FLAG_GROUPS =
         )
         .map(String::hexToBytes)
 
+/** PokeMMO rotates Spring, Summer, Autumn and Winter once per calendar month. */
+internal fun seasonForMonth(month: Int): Short {
+  require(month in 1..12) { "month must be between 1 and 12" }
+  return ((month - 1) % 4).toShort()
+}
+
 /**
  * Sends the client its story, party and bag state. Story vars have no incremental packet, so
  * anything that rewrites them has to send this whole block again.
@@ -34,6 +43,10 @@ class WorldStateService @Inject constructor() {
    * sent as 0 instead of being left off and read as their old value.
    */
   fun send(ctx: SessionContext, stored: StoredCharacter, fullVars: Boolean = false) {
+    // Season is client-side rendering state. Send it explicitly before loading the map so two
+    // clients cannot retain different defaults or stale overrides for the same world.
+    ctx.send(WorldStateValuePacket(seasonForMonth(LocalDate.now(ZoneOffset.UTC).monthValue)))
+
     // The table must land before any monster or follower is built. Without it the table stays null
     // and the client crashes constructing a party monster that reads a flag.
     ctx.send(WorldFlagTableResetPacket(WORLD_FLAG_GROUPS))

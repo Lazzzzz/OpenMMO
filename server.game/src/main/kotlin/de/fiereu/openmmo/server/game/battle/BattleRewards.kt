@@ -46,9 +46,12 @@ class BattleRewards @Inject constructor() {
       defeated: SpeciesDef,
       defeatedLevel: Int,
       fromTrainer: Boolean = false,
+      xpMultiplier: Int = 1,
   ): RewardResult {
-    val gained =
+    require(xpMultiplier >= 1) { "XP multiplier must be positive" }
+    val baseXp =
         if (fromTrainer) trainerXp(defeated, defeatedLevel) else wildXp(defeated, defeatedLevel)
+    val gained = baseXp * xpMultiplier
     val rate = winner.species.growthRate
     val cap = ExpCurves.totalXpFor(rate, ExpCurves.MAX_LEVEL)
     val newXp = minOf(winner.source.xp + gained, cap)
