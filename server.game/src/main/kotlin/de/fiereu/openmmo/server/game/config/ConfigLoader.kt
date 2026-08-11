@@ -15,10 +15,15 @@ object ConfigLoader {
     require(!tokenMaxAge.isNegative && !tokenMaxAge.isZero) {
       "server.sessionTokenMaxAge must be positive"
     }
+    val adminToken = config.getString("server.adminToken")
+    require(adminToken.length >= 32) { "server.adminToken must contain at least 32 characters" }
     return GameServerConfig(
         host = config.getString("server.host"),
         port = config.getInt("server.port"),
         checksumSize = config.getInt("server.checksumSize"),
+        adminHost = config.getString("server.adminHost"),
+        adminPort = config.getInt("server.adminPort"),
+        adminToken = adminToken,
         rootKeyResource = config.getString("server.rootKeyResource"),
         rootKey = config.stringOrNull("server.rootKey"),
         rootKeyFile = config.stringOrNull("server.rootKeyFile"),

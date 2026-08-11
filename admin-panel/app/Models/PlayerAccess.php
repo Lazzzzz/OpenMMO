@@ -13,13 +13,25 @@ class PlayerAccess extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['username', 'display_name', 'password_hash', 'enabled', 'token_epoch'];
+    protected $fillable = [
+        'username', 'display_name', 'password_hash', 'enabled', 'token_epoch',
+        'banned_until', 'ban_reason',
+    ];
 
     protected $hidden = ['password_hash'];
 
     protected function casts(): array
     {
-        return ['enabled' => 'boolean', 'created_at' => 'datetime'];
+        return [
+            'enabled' => 'boolean',
+            'created_at' => 'datetime',
+            'banned_until' => 'datetime',
+        ];
+    }
+
+    public function isBanned(): bool
+    {
+        return $this->banned_until?->isFuture() ?? false;
     }
 
     public function scopeSearch(Builder $query, ?string $search): Builder

@@ -11,7 +11,13 @@ Panneau d'administration Laravel pour le serveur OpenMMO.
 - création d'un accès compatible avec le protocole de connexion OpenMMO ;
 - changement de mot de passe et révocation des sessions mémorisées ;
 - suspension/réactivation sans supprimer les personnages ;
-- journal local des actions administratives.
+- journal local des actions administratives ;
+- fiches personnages avec équipe, PC, inventaire, argent et position ;
+- téléportation de dépannage et remise à zéro restaurable de la progression ;
+- bannissements temporaires, mutes et notes internes ;
+- équipe d'administration avec rôles propriétaire, administrateur et modérateur ;
+- joueurs en ligne, annonces globales, logs et redémarrage des services ;
+- mode maintenance et sauvegardes PostgreSQL téléchargeables.
 
 ## Installation locale
 
@@ -42,6 +48,8 @@ Le panneau conserve ses administrateurs et son journal dans sa base Laravel (`DB
 variables `OPENMMO_LOGIN_DB_*` et `OPENMMO_GAME_DB_*` configurent les deux connexions aux
 bases du jeu. Les variables `OPENMMO_LOGIN_HOST`, `OPENMMO_LOGIN_PORT`,
 `OPENMMO_GAME_HOST` et `OPENMMO_GAME_PORT` servent au contrôle de disponibilité.
+`OPENMMO_ADMIN_URL` et `OPENMMO_ADMIN_TOKEN` protègent l'interface privée du serveur de jeu.
+`OPENMMO_OPS_URL` et `OPENMMO_OPS_TOKEN` protègent l'agent d'exploitation interne.
 
 En production : utilisez HTTPS, placez le site derrière Nginx ou Caddy, mettez
 `APP_ENV=production` et `APP_DEBUG=false`, employez des mots de passe de base distincts et

@@ -23,12 +23,29 @@
             <a href="{{ route('accesses.index') }}" class="nav-link {{ request()->routeIs('accesses.*') ? 'active' : '' }}">
                 <span class="nav-icon">◎</span> Accès joueurs
             </a>
+            @if(auth()->user()->canOperateServer())
+                <a href="{{ route('server.index') }}" class="nav-link {{ request()->routeIs('server.*') ? 'active' : '' }}">
+                    <span class="nav-icon">◫</span> Serveur & logs
+                </a>
+            @endif
+            <a href="{{ route('activities.index') }}" class="nav-link {{ request()->routeIs('activities.*') ? 'active' : '' }}">
+                <span class="nav-icon">≡</span> Journal
+            </a>
+            <span class="nav-label nav-label-spaced">Administration</span>
+            @if(auth()->user()->isOwner())
+                <a href="{{ route('admins.index') }}" class="nav-link {{ request()->routeIs('admins.*') ? 'active' : '' }}">
+                    <span class="nav-icon">◇</span> Équipe
+                </a>
+            @endif
+            <a href="{{ route('profile.edit') }}" class="nav-link {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+                <span class="nav-icon">○</span> Mon profil
+            </a>
         </nav>
 
         <div class="sidebar-footer">
             <div class="admin-chip">
                 <span class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
-                <span><strong>{{ auth()->user()->name }}</strong><small>Administrateur</small></span>
+                <span><strong>{{ auth()->user()->name }}</strong><small>{{ auth()->user()->roleLabel() }}</small></span>
             </div>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf

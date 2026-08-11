@@ -7,6 +7,7 @@ use App\Http\Requests\UpdatePlayerAccessRequest;
 use App\Models\AdminActivity;
 use App\Models\GameCharacter;
 use App\Models\PlayerAccess;
+use App\Models\PlayerNote;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,8 +58,18 @@ class PlayerAccessController extends Controller
             ->latest()
             ->limit(10)
             ->get();
+        $notes = PlayerNote::query()
+            ->with('author')
+            ->where('player_access_id', $access->id)
+            ->latest()
+            ->limit(20)
+            ->get();
+        $mutedUntil = DB::connection('openmmo_game')->table('characters')
+            ->where('user_id', $access->id)
+            ->where('muted_until', '>', now())
+            ->max('muted_until');
 
-        return view('accesses.show', compact('access', 'characters', 'activities'));
+        return view('accesses.show', compact('access', 'characters', 'activities', 'notes', 'mutedUntil'));
     }
 
     public function edit(PlayerAccess $access): View

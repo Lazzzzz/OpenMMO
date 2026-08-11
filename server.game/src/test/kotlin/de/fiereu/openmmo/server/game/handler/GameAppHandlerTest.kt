@@ -23,6 +23,9 @@ class GameAppHandlerTest :
                 host = "127.0.0.1",
                 port = 0,
                 checksumSize = 2,
+                adminHost = "127.0.0.1",
+                adminPort = 0,
+                adminToken = "test-admin-token-with-at-least-32-chars",
                 rootKeyResource = "game.private.pem",
                 sessionSecret = "test-secret".toByteArray(),
             )

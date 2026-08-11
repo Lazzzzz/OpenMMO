@@ -319,6 +319,37 @@ constructor(
     mutate(characterId) { snapshot }
   }
 
+  /** Resets an offline character to the proper new-game state for its current region. */
+  suspend fun resetToNewGame(characterId: Long): Boolean {
+    val stored = getOrLoadCharacter(characterId) ?: return false
+    val region = Region.byWireValue(stored.info.positionRegionId) ?: Region.KANTO
+    val start =
+        NewGameStarts.forRegion(region, stored.info.rivalSex == CharacterGender.FEMALE.wireValue)
+    mutate(characterId) {
+      it.copy(
+          info =
+              it.info.copy(
+                  money = 30000,
+                  positionRegionId = region.wireValue,
+                  positionBankId = start.bankId,
+                  positionMapId = start.mapId,
+                  positionX = start.x,
+                  positionY = start.y,
+                  positionFacing = Direction.DOWN,
+                  dynamicWarp = start.dynamicWarp,
+              ),
+          pokemon = mutableListOf(),
+          pcStorage = mutableListOf(),
+          items = mutableMapOf(),
+          storyFlags = start.storyFlags.toMutableSet(),
+          storyVars = start.storyVars.toMutableMap(),
+      )
+    }
+    flush(characterId)
+    unloadCharacterAsync(characterId)
+    return true
+  }
+
   fun startPeriodicFlush() {
     periodicJob =
         flushScope.launch {

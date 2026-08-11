@@ -2,6 +2,7 @@ package de.fiereu.openmmo.server.login.auth
 
 import de.fiereu.openmmo.common.enums.LoginState
 import de.fiereu.openmmo.db.login.tables.references.USERS
+import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Named
 import javax.inject.Singleton
@@ -20,7 +21,10 @@ constructor(
   override suspend fun authenticate(username: String, password: String): UserService.AuthResult =
       withContext(dispatcher) {
         val user = dsl.selectFrom(USERS).where(USERS.USERNAME.eq(username.lowercase())).fetchOne()
-        if (user == null || user.enabled != true || user.passwordHash != password) {
+        if (user == null ||
+            user.enabled != true ||
+            user.bannedUntil?.isAfter(LocalDateTime.now()) == true ||
+            user.passwordHash != password) {
           UserService.AuthResult(LoginState.INVALID_PASSWORD)
         } else {
           UserService.AuthResult(LoginState.AUTHED, user.id, user.tokenEpoch ?: 0)
@@ -29,16 +33,25 @@ constructor(
 
   override suspend fun findForToken(userId: Int): UserService.TokenUser? =
       withContext(dispatcher) {
-        dsl.selectFrom(USERS).where(USERS.ID.eq(userId).and(USERS.ENABLED.isTrue)).fetchOne()?.let {
-          UserService.TokenUser(it.id!!, it.username, it.displayName, it.tokenEpoch ?: 0)
-        }
+        dsl.selectFrom(USERS)
+            .where(
+                USERS.ID.eq(userId)
+                    .and(USERS.ENABLED.isTrue)
+                    .and(USERS.BANNED_UNTIL.isNull.or(USERS.BANNED_UNTIL.le(LocalDateTime.now()))))
+            .fetchOne()
+            ?.let {
+              UserService.TokenUser(it.id!!, it.username, it.displayName, it.tokenEpoch ?: 0)
+            }
       }
 
   override suspend fun getUserId(username: String): Int? =
       withContext(dispatcher) {
         dsl.select(USERS.ID)
             .from(USERS)
-            .where(USERS.USERNAME.eq(username.lowercase()).and(USERS.ENABLED.isTrue))
+            .where(
+                USERS.USERNAME.eq(username.lowercase())
+                    .and(USERS.ENABLED.isTrue)
+                    .and(USERS.BANNED_UNTIL.isNull.or(USERS.BANNED_UNTIL.le(LocalDateTime.now()))))
             .fetchOne(USERS.ID)
       }
 

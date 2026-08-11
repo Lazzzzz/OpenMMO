@@ -23,6 +23,7 @@ constructor(
     private val characterStore: CharacterStore,
     private val multiplayerService: MultiplayerService,
     private val chatCommandService: ChatCommandService,
+    private val moderationService: ModerationService? = null,
 ) {
 
   suspend fun onMessageSend(event: PacketEvent<ChatMessageSendPacket>) {
@@ -46,7 +47,7 @@ constructor(
     broadcast(event.session, message.type, message.language, message.message)
   }
 
-  private fun broadcast(
+  private suspend fun broadcast(
       session: SessionContext,
       type: ChatType,
       language: Language?,
@@ -58,6 +59,10 @@ constructor(
       return
     }
     val charId = state.characterId ?: return
+    if (moderationService?.isMuted(charId) == true) {
+      session.send(notice("Your chat access is temporarily suspended."))
+      return
+    }
     val sender = characterStore.getCharacter(charId)?.info?.name ?: "Unknown"
     log.info { "Chat [$type] $sender: $message" }
 

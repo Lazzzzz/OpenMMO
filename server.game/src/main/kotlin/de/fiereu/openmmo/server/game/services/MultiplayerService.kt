@@ -19,4 +19,8 @@ constructor(
       }
     }
   }
+
+  fun broadcastNotice(message: String) {
+    broadcastMessage(notice(message))
+  }
 }

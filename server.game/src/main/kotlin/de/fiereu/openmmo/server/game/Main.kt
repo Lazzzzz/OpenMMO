@@ -17,10 +17,13 @@ fun main() {
   component.databaseBootstrap().migrate()
   val characterStore = component.characterStore()
   characterStore.startPeriodicFlush()
+  val adminControl = component.adminControlServer()
+  adminControl.start()
   runBlocking { component.devCharacterSeeder().seed() }
   Runtime.getRuntime()
       .addShutdownHook(
           Thread {
+            adminControl.stop()
             runCatching {
                   runBlocking { withTimeout(SHUTDOWN_FLUSH_TIMEOUT) { characterStore.shutdown() } }
                 }

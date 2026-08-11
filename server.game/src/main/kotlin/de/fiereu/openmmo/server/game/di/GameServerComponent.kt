@@ -2,6 +2,7 @@ package de.fiereu.openmmo.server.game.di
 
 import dagger.BindsInstance
 import dagger.Component
+import de.fiereu.openmmo.server.game.AdminControlServer
 import de.fiereu.openmmo.server.game.GameServer
 import de.fiereu.openmmo.server.game.config.GameServerConfig
 import de.fiereu.openmmo.server.game.db.DatabaseBootstrap
@@ -17,6 +18,8 @@ import javax.inject.Singleton
 interface GameServerComponent {
 
   fun server(): GameServer
+
+  fun adminControlServer(): AdminControlServer
 
   fun handlerProvider(): Provider<GameAppHandler>
 

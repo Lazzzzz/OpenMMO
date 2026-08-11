@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'role', 'enabled'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -27,6 +27,26 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'enabled' => 'boolean',
         ];
+    }
+
+    public function isOwner(): bool
+    {
+        return $this->role === 'owner';
+    }
+
+    public function canOperateServer(): bool
+    {
+        return in_array($this->role, ['owner', 'admin'], true);
+    }
+
+    public function roleLabel(): string
+    {
+        return match ($this->role) {
+            'owner' => 'Propriétaire',
+            'moderator' => 'Modérateur',
+            default => 'Administrateur',
+        };
     }
 }

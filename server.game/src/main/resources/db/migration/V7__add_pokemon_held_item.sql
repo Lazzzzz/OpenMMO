@@ -1,0 +1,2 @@
+ALTER TABLE pokemon
+  ADD COLUMN held_item_id INT NOT NULL DEFAULT 0;

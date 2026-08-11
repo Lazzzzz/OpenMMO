@@ -26,7 +26,11 @@
                     <td><code>{{ $access->username }}</code></td>
                     <td>{{ $characterCounts[$access->id] ?? 0 }}</td>
                     <td>{{ $access->created_at?->format('d/m/Y') ?? '—' }}</td>
-                    <td><span class="badge {{ $access->enabled ? 'good' : 'bad' }}">{{ $access->enabled ? 'Actif' : 'Suspendu' }}</span></td>
+                    <td>
+                        @if($access->isBanned())<span class="badge bad">Banni</span>
+                        @elseif($access->enabled)<span class="badge good">Actif</span>
+                        @else<span class="badge bad">Suspendu</span>@endif
+                    </td>
                     <td class="table-actions"><a href="{{ route('accesses.show', $access) }}">Gérer →</a></td>
                 </tr>
             @empty

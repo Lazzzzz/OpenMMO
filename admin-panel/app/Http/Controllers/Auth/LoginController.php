@@ -19,7 +19,10 @@ class LoginController extends Controller
 
     public function store(LoginRequest $request): RedirectResponse
     {
-        if (! Auth::attempt($request->safe()->only('email', 'password'), $request->boolean('remember'))) {
+        $credentials = $request->safe()->only('email', 'password');
+        $credentials['enabled'] = true;
+
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             throw ValidationException::withMessages([
                 'email' => 'Ces identifiants administrateur sont incorrects.',
             ]);

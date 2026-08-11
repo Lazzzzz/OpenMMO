@@ -10,7 +10,11 @@ mkdir -p \
     bootstrap/cache
 
 if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then
-    touch "${DB_DATABASE:-/var/www/html/database/database.sqlite}"
+    database_path="${DB_DATABASE:-/var/www/html/database/database.sqlite}"
+    database_directory="$(dirname "$database_path")"
+    mkdir -p "$database_directory"
+    touch "$database_path"
+    chown -R www-data:www-data "$database_directory"
 fi
 
 chown -R www-data:www-data database storage bootstrap/cache

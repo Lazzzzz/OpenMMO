@@ -35,4 +35,10 @@ class SessionRegistry @Inject constructor() {
   fun getByCharacterId(id: Long): SessionContext? = sessionsByCharacter[id]
 
   fun onlineCharacterIds(): Set<Long> = sessionsByCharacter.keys
+
+  fun disconnectCharacter(id: Long): Boolean {
+    val session = sessionsByCharacter[id] ?: return false
+    session.close { "Disconnected by an administrator" }
+    return true
+  }
 }

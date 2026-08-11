@@ -6,6 +6,9 @@ data class GameServerConfig(
     val host: String,
     val port: Int,
     val checksumSize: Int,
+    val adminHost: String,
+    val adminPort: Int,
+    val adminToken: String,
     val rootKeyResource: String,
     val sessionSecret: ByteArray,
     val sessionTokenMaxAge: Duration = Duration.ofMinutes(5),
@@ -18,6 +21,9 @@ data class GameServerConfig(
           host == other.host &&
           port == other.port &&
           checksumSize == other.checksumSize &&
+          adminHost == other.adminHost &&
+          adminPort == other.adminPort &&
+          adminToken == other.adminToken &&
           rootKeyResource == other.rootKeyResource &&
           rootKey == other.rootKey &&
           rootKeyFile == other.rootKeyFile &&
@@ -29,6 +35,9 @@ data class GameServerConfig(
     var h = host.hashCode()
     h = h * 31 + port
     h = h * 31 + checksumSize
+    h = h * 31 + adminHost.hashCode()
+    h = h * 31 + adminPort
+    h = h * 31 + adminToken.hashCode()
     h = h * 31 + rootKeyResource.hashCode()
     h = h * 31 + rootKey.hashCode()
     h = h * 31 + rootKeyFile.hashCode()
